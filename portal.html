@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>SmartEdu — Assignment Portal</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    :root { --r1:12px; --r2:16px; }
+
+    .portal-wrap { max-width:900px; margin:40px auto; padding:0 24px; }
+
+    .portal-header {
+      display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:32px;
+    }
+
+    /* Role badge replacing the switcher */
+    .role-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 16px; border-radius:10px;
+      font-family:var(--font-b); font-size:13px; font-weight:700;
+    }
+    .role-badge.student {
+      background:rgba(0,229,160,.08); border:1px solid rgba(0,229,160,.25); color:var(--green);
+    }
+    .role-badge.teacher {
+      background:rgba(91,110,248,.1); border:1px solid rgba(91,110,248,.3); color:var(--accent2);
+    }
+
+    /* Access denied screen */
+    .access-denied {
+      text-align:center; padding:80px 24px;
+      background:var(--card); border:1px solid rgba(255,61,107,.2);
+      border-radius:var(--r2); margin-top:40px;
+    }
+    .access-denied .icon { font-size:52px; margin-bottom:16px; }
+    .access-denied h2 { font-family:var(--font-d); font-size:24px; color:var(--red); margin-bottom:10px; }
+    .access-denied p { color:var(--text2); font-size:14px; line-height:1.7; max-width:360px; margin:0 auto 24px; }
+
+    /* Post card */
+    .post-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r2); padding:24px; margin-bottom:32px;
+    }
+    .input-group { margin-bottom:16px; }
+    .input-group label {
+      display:block; font-size:11px; text-transform:uppercase;
+      color:var(--muted); margin-bottom:6px;
+      font-family:var(--font-b); letter-spacing:.5px;
+    }
+    .portal-input, .portal-textarea {
+      width:100%; background:var(--surface); border:1px solid var(--border);
+      border-radius:8px; padding:12px; color:var(--text);
+      font-family:var(--font-m); outline:none; transition:border-color .2s;
+    }
+    .portal-input:focus, .portal-textarea:focus { border-color:var(--accent); }
+    .portal-textarea { height:100px; resize:none; }
+
+    /* Assignment cards */
+    .assign-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--r2); padding:20px; margin-bottom:16px;
+      display:flex; justify-content:space-between; align-items:center;
+      transition:border-color .2s;
+    }
+    .assign-card:hover { border-color:var(--border2); }
+    .assign-info h3 { font-family:var(--font-d); font-size:18px; margin-bottom:4px; }
+    .assign-info p { color:var(--text2); font-size:14px; margin-bottom:8px; line-height:1.5; }
+    .assign-meta { font-size:11px; color:var(--muted); display:flex; gap:12px; }
+
+    .btn-submit {
+      background:var(--accent-dim); color:var(--accent2);
+      border:1px solid var(--accent-glow); padding:8px 16px;
+      border-radius:8px; font-size:12px; font-weight:700;
+      cursor:pointer; transition:all .2s; white-space:nowrap;
+    }
+    .btn-submit:hover { background:var(--accent); color:white; }
+    .btn-submit.done {
+      background:rgba(0,229,160,.1); color:var(--green);
+      border-color:rgba(0,229,160,.2); cursor:default;
+    }
+    .btn-submit.danger {
+      background:rgba(255,61,107,.1); color:var(--red);
+      border-color:rgba(255,61,107,.2); margin-bottom:8px;
+    }
+    .btn-submit.danger:hover { background:var(--red); color:white; }
+
+    .empty-state {
+      text-align:center; padding:60px 20px; color:var(--muted);
+      border:2px dashed var(--border); border-radius:var(--r2);
+    }
+
+    /* Teacher stats bar */
+    .teacher-stats {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">🎓</div>
+    <div>
+      <div class="logo-name">SmartEdu</div>
+      <div class="logo-sub">Smart Study Suite</div>
+    </div>
+  </a>
+  <nav>
+    <a class="nav-link" href="portal.html"><span class="nav-icon">📋</span><span class="nav-label">Assignments</span></a>
+    <a class="nav-link" href="dashboard.html"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+    <a class="nav-link" href="add.html"><span class="nav-icon">➕</span><span class="nav-label">Add Task</span></a>
+    <a class="nav-link" href="iq.html"><span class="nav-icon">🧠</span><span class="nav-label">IQ Test</span></a>
+    <a class="nav-link" href="exam.html"><span class="nav-icon">📝</span><span class="nav-label">Exam</span></a>
+    <a class="nav-link" href="tutor.html"><span class="nav-icon">🤖</span><span class="nav-label">Tutor</span></a>
+  </nav>
+  <div id="user-nav-area" style="display:flex; align-items:center; gap:12px;">
+    </div>
+</header>
+
+<main class="portal-wrap">
+
+  <!-- Access denied fallback (shown if not logged in — shared.js redirects first) -->
+  <div id="view-denied" style="display:none">
+    <div class="access-denied">
+      <div class="icon">🚫</div>
+      <h2>Access Restricted</h2>
+      <p>You don't have permission to view this area. Please log in with the correct account.</p>
+      <a href="login.html" class="btn btn-primary">Go to Login</a>
+    </div>
+  </div>
+
+  <!-- ── TEACHER VIEW ──────────────────────────────────────────── -->
+  <div id="view-teacher" style="display:none">
+    <div class="portal-header">
+      <div>
+        <h1 style="font-family:var(--font-d);font-size:32px;">Teacher's Desk</h1>
+        <p style="color:var(--muted);font-size:14px;">Create assignments and monitor student submissions</p>
+      </div>
+      <span class="role-badge teacher">📋 Teacher</span>
+    </div>
+
+    <div class="teacher-stats">
+      <div class="stat-card">
+        <div class="stat-val" id="t-total" style="color:var(--accent2)">0</div>
+        <div class="stat-lbl">Assignments Posted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="t-subs" style="color:var(--green)">0</div>
+        <div class="stat-lbl">Total Submissions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="t-pending" style="color:var(--yellow)">0</div>
+        <div class="stat-lbl">Pending Submissions</div>
+      </div>
+    </div>
+
+    <div class="post-card slide-up">
+      <h2 style="font-family:var(--font-d);font-size:20px;margin-bottom:20px;">Post New Assignment</h2>
+      <div class="input-group">
+        <label>Assignment Title</label>
+        <input type="text" id="post-title" class="portal-input" placeholder="e.g., Weekly Lab Report #4"/>
+      </div>  
+      <div class="input-group">
+        <label>Detailed Instructions</label>
+        <textarea id="post-desc" class="portal-textarea" placeholder="Describe what the students need to submit..."></textarea>
+        <div class="input-group">
+  <label>Submission Due Date</label>
+  <input type="date" id="post-deadline" class="portal-input">
+</div>
+      </div>
+      <button class="btn-submit" style="width:100%;padding:12px;background:var(--accent);color:white;border:none;"
+        onclick="handlePost()">
+        📤 Publish to Student Portal
+      </button>
+    </div>
+
+    <div id="teacher-list"></div>
+  </div>
+
+  <!-- ── STUDENT VIEW ──────────────────────────────────────────── -->
+  <div id="view-student" style="display:none">
+    <div class="portal-header">
+      <div>
+        <h1 style="font-family:var(--font-d);font-size:32px;">Classroom</h1>
+        <p style="color:var(--muted);font-size:14px;">View and submit your assignments</p>
+      </div>
+      <span class="role-badge student">🎒 Student</span>
+    </div>
+
+    <div id="student-list"></div>
+  </div>
+
+</main>
+
+<script src="shared.js"></script>
+<script>
+  // ── Auth gate ────────────────────────────────────────────────
+  const session = requireLogin(); // redirects to login.html if not logged in
+  const userRole = session ? session.role : null; // 'student' | 'teacher'
+
+  let assignments = JSON.parse(localStorage.getItem('SmartEdu_Assignments') || '[]');
+
+  // ── Show the correct view ────────────────────────────────────
+  function initView() {
+    if (userRole === 'teacher') {
+      document.getElementById('view-teacher').style.display = 'block';
+      renderTeacher();
+    } else if (userRole === 'student') {
+      document.getElementById('view-student').style.display = 'block';
+      renderStudent();
+    } else {
+      document.getElementById('view-denied').style.display = 'block';
+    }
+  }
+
+  // ── Teacher: post ────────────────────────────────────────────
+  function handlePost() {
+  if (userRole !== 'teacher') return;
+  const title = document.getElementById('post-title').value.trim();
+  const desc  = document.getElementById('post-desc').value.trim();
+  const deadline = document.getElementById('post-deadline').value; 
+
+  // 1. Check for empty fields
+  if (!title || !desc || !deadline) { 
+    alert('Please fill in the title, instructions, and due date.'); 
+    return; 
+  }
+
+  // 2. Date validation logic
+  const today = new Date().toISOString().split('T')[0];
+  if (deadline < today) {
+    alert('The submission date cannot be in the past. Please select today or a future date.');
+    return;
+  }
+
+  const newAssign = {
+    id: Date.now(),
+    title,
+    desc,
+    deadline, 
+    date: new Date().toLocaleDateString('en-US', { month:'short', day:'numeric' }),
+    submissions: 0,
+    submittedBy: [],
+    contents: [] 
+  };
+  
+  assignments.unshift(newAssign);
+  localStorage.setItem('SmartEdu_Assignments', JSON.stringify(assignments));
+  
+  // Clear inputs
+  document.getElementById('post-title').value = '';
+  document.getElementById('post-desc').value  = '';
+  document.getElementById('post-deadline').value = '';
+  renderTeacher();
+}
+
+  // ── Teacher: delete ──────────────────────────────────────────
+  function deleteAssignment(id) {
+    if (userRole !== 'teacher') return;
+    if (!confirm('Delete this assignment? All submission data will be lost.')) return;
+    assignments = assignments.filter(a => a.id !== id);
+    localStorage.setItem('SmartEdu_Assignments', JSON.stringify(assignments));
+    renderTeacher();
+  }
+
+  // ── Student: submit ──────────────────────────────────────────
+  function submitAssignment(id) {
+  if (userRole !== 'student') return;
+  
+  const answer = prompt('Enter your answer or Google Drive / file link:');
+  if (!answer || !answer.trim()) { 
+    alert('Submission failed: you must provide an answer or link.'); 
+    return; 
+  }
+  
+  const idx = assignments.findIndex(a => a.id === id);
+  if (idx !== -1) {
+    const uid = session.username;
+    const studentName = session.name || uid;
+
+    // Initialize arrays if they don't exist
+    assignments[idx].submittedBy = assignments[idx].submittedBy || [];
+    assignments[idx].contents = assignments[idx].contents || [];
+
+    // Only add if this student hasn't submitted yet
+    if (!assignments[idx].submittedBy.includes(uid)) {
+      assignments[idx].submissions = (assignments[idx].submissions || 0) + 1;
+      assignments[idx].submittedBy.push(uid);
+      
+      // SAVE THE ACTUAL CONTENT HERE
+      assignments[idx].contents.push({
+        student: studentName,
+        text: answer,
+        time: new Date().toLocaleString()
+      });
+    }
+
+    assignments[idx]['sub_' + uid] = true;
+    localStorage.setItem('SmartEdu_Assignments', JSON.stringify(assignments));
+    renderStudent();
+    alert('Your report has been uploaded successfully!');
+  }
+}
+
+  // ── Render: Teacher ──────────────────────────────────────────
+  function renderTeacher() {
+    const total   = assignments.length;
+    const subs    = assignments.reduce((s, a) => s + (a.submissions || 0), 0);
+    const pending = assignments.reduce((s, a) => s + Math.max(0, 1 - (a.submissions || 0)), 0);
+    document.getElementById('t-total').textContent   = total;
+    document.getElementById('t-subs').textContent    = subs;
+    document.getElementById('t-pending').textContent = total; // assignments without full submission
+
+    const el = document.getElementById('teacher-list');
+  if (!assignments.length) {
+    el.innerHTML = `<div class="empty-state"><h3>No assignments yet</h3></div>`;
+    return;
+  }
+    el.innerHTML = assignments.map(a => `
+    <div class="assign-card slide-up" style="display:block;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div class="assign-info">
+          <h3>${esc(a.title)}</h3>
+          <p>${esc(a.desc)}</p>
+          <div class="assign-meta">
+            <span>📅 Posted: ${a.date}</span>
+            <span style="color:var(--red)">⏰ Due: ${a.deadline}</span>
+            <span>👥 Submissions: ${a.submissions || 0}</span>
+          </div>
+        </div>
+        <button class="btn-submit danger" onclick="deleteAssignment(${a.id})">🗑 Delete</button>
+      </div>
+
+      <div class="submissions-box" style="margin-top:20px; padding-top:15px; border-top:1px solid var(--border);">
+        <h4 style="font-size:12px; color:var(--muted); text-transform:uppercase; margin-bottom:10px;">Student Submissions</h4>
+        ${(a.contents && a.contents.length > 0) ? a.contents.map(c => `
+          <div style="background:var(--surface); padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+              <strong style="color:var(--accent2); font-size:13px;">${esc(c.student)}</strong>
+              <span style="font-size:10px; color:var(--muted);">${c.time}</span>
+            </div>
+            <div style="font-size:14px; color:var(--text); white-space: pre-wrap; word-break: break-all;">${esc(c.text)}</div>
+          </div>
+        `).join('') : '<p style="font-size:12px; color:var(--muted);">No one has submitted yet.</p>'}
+      </div>
+    </div>`).join('');
+}
+
+  // ── Render: Student ──────────────────────────────────────────
+  function renderStudent() {
+  const el = document.getElementById('student-list');
+  const uid = session.username;
+  
+  // Get current date in YYYY-MM-DD format for comparison
+  const today = new Date().toISOString().split('T')[0];
+
+  if (!assignments.length) {
+    el.innerHTML = `<div class="empty-state"><h3>No assignments yet</h3></div>`;
+    return;
+  }
+
+  el.innerHTML = assignments.map(a => {
+    const isSubmitted = !!a['sub_' + uid];
+    const isPastDeadline = today > a.deadline;
+
+    return `
+      <div class="assign-card slide-up">
+        <div class="assign-info">
+          <h3>${esc(a.title)}</h3>
+          <p>${esc(a.desc)}</p>
+          <div class="assign-meta">
+            <span>📅 Posted: ${a.date}</span>
+            <span style="color:${isPastDeadline ? 'var(--red)' : 'var(--green)'}">
+              ⏰ Due: ${a.deadline} ${isPastDeadline ? '(Passed)' : ''}
+            </span>
+          </div>
+        </div>
+        <div style="flex-shrink:0">
+          ${isSubmitted 
+            ? `<button class="btn-submit done">✓ Submitted</button>` 
+            : isPastDeadline 
+              ? `<button class="btn-submit disabled" style="background:#333; cursor:not-allowed;" disabled>Closed</button>`
+              : `<button class="btn-submit" onclick="submitAssignment(${a.id})">Upload Answer</button>`
+          }
+        </div>
+      </div>`;
+  }).join('');
+}
+  initView();
+</script>
+</body>
+</html>

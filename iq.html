@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="security.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartEdu — IQ Pattern Test</title>
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        .hidden { display: none !important; }
+
+        .iq-ring {
+            width: 120px; height: 120px; border-radius: 50%;
+            background: conic-gradient(var(--yellow) var(--pct), var(--surface) 0);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .iq-ring-val {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: var(--card); display: flex; align-items: center;
+            justify-content: center; font-size: 32px; font-weight: 800;
+            font-family: var(--font-m);
+        }
+        .score-breakdown {
+            display: flex; justify-content: space-around;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px; margin-bottom: 24px;
+        }
+        .sc-val { font-size: 24px; font-weight: 800; font-family: var(--font-m); }
+        .sc-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-family: var(--font-m); }
+
+        .seq-badge {
+            display: inline-block; font-size: 11px; padding: 4px 12px;
+            border-radius: 20px; background: rgba(245,200,66,.1);
+            color: var(--yellow); border: 1px solid rgba(245,200,66,.2);
+            margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;
+            font-family: var(--font-m);
+        }
+        .q-series-iq {
+            font-size: 26px; font-weight: 700; color: var(--text);
+            letter-spacing: 5px; margin: 20px 0; padding: 22px;
+            background: var(--surface); border-radius: 14px;
+            border: 1px solid var(--border); text-align: center;
+            font-family: var(--font-m);
+        }
+        .opt-btn-iq {
+            background: var(--card2); border: 1px solid var(--border);
+            border-radius: 12px; padding: 15px 20px; font-size: 17px;
+            color: var(--text); cursor: pointer; font-family: var(--font-m);
+            transition: all 0.2s; font-weight: 600; text-align: center;
+            width: 100%;
+        }
+        .opt-btn-iq:hover:not(.disabled) {
+            border-color: var(--yellow); background: rgba(245,200,66,.08);
+            transform: translateY(-2px);
+        }
+        .opt-btn-iq.correct { background: rgba(0,229,160,.12); border-color: var(--green); color: var(--green); }
+        .opt-btn-iq.wrong   { background: rgba(255,61,107,.12); border-color: var(--red); color: var(--red); }
+        .opt-btn-iq.disabled { pointer-events: none; opacity: 0.7; }
+
+        .options-iq { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+
+        .type-row {
+            background: var(--surface); border: 1px solid var(--border);
+            display: flex; justify-content: space-between;
+            padding: 11px 16px; border-radius: 8px; margin-bottom: 8px;
+            font-family: var(--font-m); font-size: 13px; color: var(--text2);
+        }
+        .iq-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 20px; padding: 40px; max-width: 650px;
+            margin: 0 auto; text-align: center;
+        }
+        .timer-pill-iq {
+            font-family: var(--font-m); font-size: 14px; font-weight: 700;
+            padding: 6px 18px; border-radius: 99px;
+            background: rgba(245,200,66,.08); color: var(--yellow);
+            border: 1px solid rgba(245,200,66,.3); display: inline-block;
+        }
+        .timer-pill-iq.red { background: rgba(255,61,107,.08); color: var(--red); border-color: rgba(255,61,107,.3); }
+
+        .iq-explain {
+            background: rgba(245,200,66,.05); border-left: 3px solid var(--yellow);
+            color: var(--text2); padding: 14px 18px; margin-top: 16px;
+            border-radius: 0 10px 10px 0; font-size: 13.5px; line-height: 1.7;
+            text-align: left;
+        }
+        .iq-explain strong { color: var(--yellow); }
+
+        @media(max-width:600px) {
+            .options-iq { grid-template-columns: 1fr; }
+            .iq-card { padding: 22px 16px; }
+            .q-series-iq { font-size: 18px; letter-spacing: 3px; }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <a class="logo" href="index.html">
+            <div class="logo-icon">🎓</div>
+            <div>
+                <div class="logo-name">SmartEdu</div>
+                <div class="logo-sub">Smart Study Suite</div>
+            </div>
+        </a>
+        <nav>
+            <a class="nav-link" href="portal.html"><span class="nav-icon">📋</span><span class="nav-label">Assignments</span></a>
+            <a class="nav-link" href="dashboard.html"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+            <a class="nav-link" href="add.html"><span class="nav-icon">➕</span><span class="nav-label">Add Task</span></a>
+            <a class="nav-link" href="iq.html"><span class="nav-icon">🧠</span><span class="nav-label">IQ Test</span></a>
+            <a class="nav-link" href="exam.html"><span class="nav-icon">📝</span><span class="nav-label">Exam</span></a>
+            <a class="nav-link" href="tutor.html"><span class="nav-icon">🤖</span><span class="nav-label">Tutor</span></a>
+        </nav>
+        <div id="user-nav-area" style="display:flex;align-items:center;gap:12px;"></div>
+    </header>
+
+    <main>
+        <div class="page-header" style="text-align:center">
+            <div class="page-title" style="background:linear-gradient(135deg,var(--yellow),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                IQ Pattern Test
+            </div>
+            <div class="page-sub">Professional randomized sequences · Age-normalized IQ scoring</div>
+        </div>
+
+        <!-- START -->
+        <div id="start-screen">
+            <div class="iq-card slide-up">
+                <div style="font-size:52px;margin-bottom:16px">🧠</div>
+                <h2 style="font-family:var(--font-d);font-weight:700;font-size:24px;margin-bottom:12px;">Sequence Pattern Test</h2>
+                <p style="color:var(--text2);font-size:14px;max-width:420px;margin:0 auto 28px;line-height:1.7;">
+                    10 fresh questions across 10 pattern types. IQ normalized by age (younger = tougher baseline).<br>30 seconds per question.
+                </p>
+                <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:32px;">
+                    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+                        <div style="font-size:24px;font-weight:600;color:var(--accent2);font-family:var(--font-m)">10</div>
+                        <div style="font-size:12px;color:var(--muted)">Questions</div>
+                    </div>
+                    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+                        <div style="font-size:24px;font-weight:600;color:var(--yellow);font-family:var(--font-m)">30s</div>
+                        <div style="font-size:12px;color:var(--muted)">Per Question</div>
+                    </div>
+                    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;">
+                        <div style="font-size:24px;font-weight:600;color:var(--green);font-family:var(--font-m)">IQ</div>
+                        <div style="font-size:12px;color:var(--muted)">Age-Normalized</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="startTest()" style="font-size:15px;padding:13px 40px;">🚀 Generate &amp; Start</button>
+            </div>
+        </div>
+
+        <!-- TEST -->
+        <div id="test-screen" class="hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+                <div style="font-size:14px;color:var(--muted);font-family:var(--font-m)">Question <span id="q-num">1</span>/10</div>
+                <div class="timer-pill-iq" id="timer">30s</div>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-fill" id="prog" style="width:0%"></div>
+            </div>
+            <div id="q-area"></div>
+            <div style="text-align:right;">
+                <button class="btn btn-ghost" id="next-btn" onclick="nextQ()" style="display:none;margin-top:20px;">Next →</button>
+            </div>
+        </div>
+
+        <!-- AGE -->
+        <div id="age-screen" class="hidden">
+            <div class="iq-card" style="max-width:450px">
+                <div style="font-size:48px;margin-bottom:16px">📊</div>
+                <h3 style="font-family:var(--font-d);font-weight:700;font-size:22px;margin-bottom:12px;">Test Complete!</h3>
+                <p style="color:var(--text2);font-size:14px;margin-bottom:24px;line-height:1.6;">
+                    Enter your age to get an age-normalized IQ score.
+                </p>
+                <div style="max-width:220px;margin:0 auto 20px;">
+                    <label style="display:block;text-align:left;margin-bottom:8px;font-weight:600;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-family:var(--font-m)">Your Age</label>
+                    <input type="number" id="age-in" min="5" max="99" placeholder="e.g. 16"
+                        class="field"
+                        style="width:100%;text-align:center;font-size:24px;font-weight:600;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);outline:none;font-family:var(--font-m);"
+                        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+                </div>
+                <div id="age-err" style="color:var(--red);font-size:13px;margin-bottom:12px;font-family:var(--font-m)"></div>
+                <button class="btn btn-primary" onclick="calcIQ()" style="width:100%;justify-content:center;">Calculate My IQ →</button>
+            </div>
+        </div>
+
+        <!-- RESULT -->
+        <div id="result-screen" class="hidden">
+            <div class="iq-card" style="max-width:600px">
+                <div style="font-size:48px;margin-bottom:8px" id="res-emoji">🎖️</div>
+                <div class="iq-ring" id="iq-ring" style="--pct:60%">
+                    <div class="iq-ring-val" id="iq-val" style="color:var(--yellow)">—</div>
+                </div>
+                <div style="font-family:var(--font-d);font-size:22px;font-weight:700;margin-bottom:4px" id="iq-band"></div>
+                <div style="color:var(--text2);font-size:14px;margin-bottom:24px" id="iq-desc"></div>
+
+                <div class="score-breakdown">
+                    <div>
+                        <div class="sc-val" style="color:var(--green)" id="res-raw"></div>
+                        <div class="sc-lbl">Score</div>
+                    </div>
+                    <div>
+                        <div class="sc-val" style="color:var(--yellow)" id="res-age"></div>
+                        <div class="sc-lbl">Age</div>
+                    </div>
+                    <div>
+                        <div class="sc-val" style="color:var(--accent2)" id="res-pct"></div>
+                        <div class="sc-lbl">Accuracy</div>
+                    </div>
+                </div>
+
+                <div style="font-size:12px;color:var(--muted);padding:12px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--border);margin-bottom:24px;line-height:1.7;font-family:var(--font-m)">
+                    IQ = 100 + 15 × (score/10 − 0.5) × age_factor &nbsp;|&nbsp; age_factor = clamp(15/age, 0.5, 2.0)
+                </div>
+
+                <div id="type-breakdown" style="text-align:left;margin-bottom:24px;"></div>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:32px;">
+                    <button class="btn btn-primary" onclick="restartTest()">🔄 New Test</button>
+                    <a class="btn btn-ghost" href="dashboard.html">Dashboard</a>
+                </div>
+                <div id="review-area"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="shared.js"></script>
+    <script>
+        const rInt = (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo;
+        const r2 = n => Math.round(n * 100) / 100;
+        const shuffleArr = a => [...a].sort(() => Math.random() - 0.5);
+
+        const GENS = [
+            () => { const a=rInt(2,15),d=rInt(1,8),n=5; const s=Array.from({length:n},(_,i)=>a+i*d); const ans=a+n*d; return {type:'AP',series:s,answer:ans,explain:`First term <strong>${a}</strong>, common difference <strong>${d}</strong>. Next = ${r2(ans)}`}; },
+            () => { const a=rInt(1,5),r=rInt(2,3),n=5; const s=Array.from({length:n},(_,i)=>a*Math.pow(r,i)); const ans=a*Math.pow(r,n); return {type:'GP',series:s,answer:ans,explain:`First <strong>${a}</strong>, common ratio <strong>${r}</strong>. Next = ${r2(ans)}`}; },
+            () => { const a=rInt(1,3),d=rInt(1,2),r=rInt(2,3),n=5; const s=Array.from({length:n},(_,i)=>a+i*d*Math.pow(r,i)); const ans=a+n*d*Math.pow(r,n); return {type:'APGP',series:s,answer:ans,explain:`Term n: a + n·d·r<sup>n</sup>. Next = ${r2(ans)}`}; },
+            () => { const a=rInt(2,6),d=rInt(1,3),n=5; const s=Array.from({length:n},(_,i)=>1/(a+i*d)); const ans=1/(a+n*d); const apTerms=Array.from({length:n+1},(_,i)=>a+i*d); return {type:'1/AP',series:s,answer:ans,explain:`Denominators form AP: ${apTerms.slice(0,5).join(', ')}… Next denom ${apTerms[5]}, value = ${r2(ans)}`}; },
+            () => { const a=rInt(1,3),r=2,n=5; const s=Array.from({length:n},(_,i)=>1/(a*Math.pow(r,i))); const ans=1/(a*Math.pow(r,n)); return {type:'1/GP',series:s,answer:ans,explain:`Denominators form GP with ratio ${r}. Next = ${r2(ans)}`}; },
+            () => { const off=rInt(1,6),n=5; const s=Array.from({length:n},(_,i)=>Math.pow(off+i,2)); const ans=Math.pow(off+n,2); return {type:'n²',series:s,answer:ans,explain:`Perfect squares starting at ${off}². Next: (${off+n})² = ${ans}`}; },
+            () => { const off=rInt(1,4),n=5; const s=Array.from({length:n},(_,i)=>1/Math.pow(off+i,2)); const ans=1/Math.pow(off+n,2); return {type:'1/n²',series:s,answer:ans,explain:`Denominators are squares from ${off}. Next denom (${off+n})² = ${(off+n)**2}, value = ${r2(ans)}`}; },
+            () => { const off=rInt(1,5),n=5; const s=Array.from({length:n},(_,i)=>(off+i)*(off+i+1)); const k=off+n; const ans=k*(k+1); return {type:'n(n+1)',series:s,answer:ans,explain:`Pronic numbers. Next: ${k} × ${k+1} = ${ans}`}; },
+            () => { const off=rInt(1,3),n=5; const s=Array.from({length:n},(_,i)=>Math.pow(off+i,3)); const ans=Math.pow(off+n,3); return {type:'n³',series:s,answer:ans,explain:`Perfect cubes starting at ${off}³. Next: (${off+n})³ = ${ans}`}; },
+            () => { const a=rInt(1,5),b=rInt(a+1,a+5); const s=[a,b]; for(let i=2;i<6;i++)s.push(s[i-1]+s[i-2]); const ans=s[5]; return {type:'Fib',series:s.slice(0,5),answer:ans,explain:`Fibonacci-style: each term = sum of previous two. ${s[3]} + ${s[4]} = ${ans}`}; }
+        ];
+
+        let questions=[], qIdx=0, score=0, timerInt=null, tLeft=30, answered=false, userAnswers=[], typeScores={};
+
+        function buildOptions(answer) {
+            const pool = new Set([r2(answer)]);
+            const deltas = answer % 1 !== 0 ? [0.05, 0.1, -0.05, -0.1] : [1, 2, 3, -1, -2];
+            let attempts = 0;
+            while (pool.size < 4 && attempts < 100) {
+                attempts++;
+                const d = deltas[Math.floor(Math.random() * deltas.length)];
+                const v = r2(answer + d);
+                if (v !== 0 && !isNaN(v)) pool.add(v);
+            }
+            let fb = r2(answer + 2);
+            while (pool.size < 4) { if (!isNaN(fb)) pool.add(fb); fb = r2(fb + 1); }
+            return shuffleArr([...pool]).map(v => String(v));
+        }
+
+        function startTest() {
+            const gens = shuffleArr(GENS);
+            questions = gens.map(g => {
+                const raw = g();
+                const ans = String(r2(raw.answer));
+                let opts = buildOptions(r2(raw.answer));
+                if (!opts.includes(ans)) opts[0] = ans;
+                return { ...raw, opts: shuffleArr(opts), answer: ans };
+            });
+            qIdx = 0; score = 0; userAnswers = []; typeScores = {};
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('test-screen').classList.remove('hidden');
+            showQ();
+        }
+
+        function showQ() {
+            answered = false;
+            document.getElementById('next-btn').style.display = 'none';
+            const q = questions[qIdx];
+            document.getElementById('q-num').textContent = qIdx + 1;
+            document.getElementById('prog').style.width = (qIdx / 10) * 100 + '%';
+            const labels = ['A', 'B', 'C', 'D'];
+            const serDisp = q.series.map(v => r2(v)).join('  ,  ');
+            document.getElementById('q-area').innerHTML = `
+                <div class="q-card">
+                    <div class="seq-badge">${q.type}</div>
+                    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px;font-family:var(--font-m);letter-spacing:.5px">
+                        QUESTION ${qIdx+1} OF 10 — FIND THE NEXT TERM
+                    </div>
+                    <div class="q-series-iq">${serDisp}  ,  <span style="color:var(--yellow)">?</span></div>
+                    <div class="options-iq" id="opts">
+                        ${q.opts.map((o, i) => `
+                            <button class="opt-btn-iq" id="opt-${i}" onclick="selectOpt(${i})">
+                                <span style="font-size:11px;font-weight:700;color:var(--muted);margin-right:10px;">${labels[i]}</span>${o}
+                            </button>`).join('')}
+                    </div>
+                </div>`;
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInt); tLeft = 30; updateTimer();
+            timerInt = setInterval(() => { tLeft--; updateTimer(); if (tLeft <= 0) { clearInterval(timerInt); onTimeout(); } }, 1000);
+        }
+
+        function updateTimer() {
+            const el = document.getElementById('timer');
+            el.textContent = tLeft + 's';
+            el.className = 'timer-pill-iq' + (tLeft < 10 ? ' red' : '');
+        }
+
+        function onTimeout() {
+            if (answered) return;
+            answered = true;
+            const q = questions[qIdx];
+            pushAnswer(q, null, false, true);
+            const ci = q.opts.indexOf(q.answer);
+            if (ci !== -1) document.getElementById(`opt-${ci}`).classList.add('correct');
+            document.querySelectorAll('.opt-btn-iq').forEach(b => b.classList.add('disabled'));
+            showExplain(q, null, true);
+            document.getElementById('next-btn').style.display = 'inline-flex';
+        }
+
+        function selectOpt(i) {
+            if (answered) return;
+            answered = true;
+            clearInterval(timerInt);
+            const q = questions[qIdx];
+            const chosen = q.opts[i];
+            const correct = chosen === q.answer;
+            if (correct) score++;
+            pushAnswer(q, chosen, correct, false);
+            const ci = q.opts.indexOf(q.answer);
+            document.querySelectorAll('.opt-btn-iq').forEach((b, bi) => {
+                b.classList.add('disabled');
+                if (bi === ci) b.classList.add('correct');
+                else if (bi === i && !correct) b.classList.add('wrong');
+            });
+            showExplain(q, correct, false);
+            document.getElementById('next-btn').style.display = 'inline-flex';
+        }
+
+        function pushAnswer(q, chosen, correct, timedOut) {
+            userAnswers.push({ q, chosen, correct, timedOut });
+            if (!typeScores[q.type]) typeScores[q.type] = { c: 0, t: 0 };
+            typeScores[q.type].t++;
+            if (correct) typeScores[q.type].c++;
+        }
+
+        function showExplain(q, correct, timedOut) {
+            const icon = timedOut ? '⏰ Time\'s up!' : correct ? '✅ Correct!' : '❌ Incorrect';
+            const card = document.querySelector('#q-area .q-card');
+            const d = document.createElement('div');
+            d.className = 'iq-explain';
+            d.innerHTML = `<strong>${icon}</strong><br>${q.explain}`;
+            card.appendChild(d);
+        }
+
+        function nextQ() {
+            qIdx++;
+            if (qIdx >= 10) {
+                clearInterval(timerInt);
+                document.getElementById('test-screen').classList.add('hidden');
+                document.getElementById('age-screen').classList.remove('hidden');
+                document.getElementById('age-in').focus();
+            } else { showQ(); }
+        }
+
+        function calcIQ() {
+            const errEl = document.getElementById('age-err');
+            const age = parseInt(document.getElementById('age-in').value);
+            if (isNaN(age) || age < 5 || age > 99) {
+                errEl.textContent = 'Please enter a valid age (5–99).'; return;
+            }
+            errEl.textContent = '';
+            const ageFactor = Math.max(0.5, Math.min(2.0, 15 / age));
+            const iq = Math.round(100 + 15 * ((score / 10) - 0.5) * ageFactor);
+            document.getElementById('age-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            const BANDS = [
+                { min: 130, emoji: '🧑‍🎓', label: 'Gifted',        desc: 'Top 2% — Exceptional reasoning ability.' },
+                { min: 120, emoji: '🎖️',  label: 'Very Superior', desc: 'Top 10% — Outstanding cognitive skills.' },
+                { min: 110, emoji: '👍',  label: 'High Average',   desc: 'Top 25% — Strong pattern recognition.' },
+                { min: 90,  emoji: '✅',  label: 'Average',        desc: 'Solid reasoning and pattern skills.' },
+                { min: 80,  emoji: '📈',  label: 'Low Average',    desc: 'Keep practicing — patterns improve with time!' },
+                { min: 0,   emoji: '🔄',  label: 'Below Average',  desc: 'Try again — random series can be tricky!' }
+            ];
+            const band = BANDS.find(b => iq >= b.min) || BANDS[BANDS.length - 1];
+
+            document.getElementById('res-emoji').textContent = band.emoji;
+            document.getElementById('iq-val').textContent = iq;
+            document.getElementById('iq-band').textContent = band.label;
+            document.getElementById('iq-desc').textContent = band.desc;
+            document.getElementById('res-raw').textContent = score + '/10';
+            document.getElementById('res-age').textContent = age;
+            document.getElementById('res-pct').textContent = Math.round((score / 10) * 100) + '%';
+
+            const pct = Math.min(100, Math.max(0, Math.round((iq - 70) / 75 * 100)));
+            document.getElementById('iq-ring').style.setProperty('--pct', pct + '%');
+
+            document.getElementById('type-breakdown').innerHTML = `
+                <div style="font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-family:var(--font-m)">Score by Pattern Type</div>
+                ${Object.entries(typeScores).map(([t,v]) => `
+                    <div class="type-row">
+                        <span>${t}</span>
+                        <span style="font-weight:600;color:${v.c>0?'var(--green)':'var(--red)'}">${v.c}/${v.t}</span>
+                    </div>`).join('')}`;
+
+            document.getElementById('review-area').innerHTML = `
+                <div style="font-weight:700;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;font-family:var(--font-m)">Full Review</div>
+                ${userAnswers.map((ua, i) => {
+                    const icon = ua.timedOut ? '⏰ Timed Out' : ua.correct ? '✅ Correct' : '❌ Wrong';
+                    const serDisp = ua.q.series.map(v => r2(v)).join(', ');
+                    return `
+                        <div style="margin-bottom:14px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;text-align:left;">
+                            <div class="seq-badge">${ua.q.type}</div>
+                            <div style="font-size:14px;font-weight:600;margin-bottom:10px">${icon} — Q${i+1}</div>
+                            <div style="font-size:18px;letter-spacing:3px;margin-bottom:12px;font-family:var(--font-m);color:var(--text2)">${serDisp}</div>
+                            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;font-family:var(--font-m)">
+                                Your answer: <span style="color:${ua.correct?'var(--green)':'var(--red)'}">${ua.chosen ?? 'No answer'}</span>
+                                &nbsp;·&nbsp;
+                                Correct: <span style="color:var(--green);font-weight:600">${ua.q.answer}</span>
+                            </div>
+                            <div class="iq-explain">${ua.q.explain}</div>
+                        </div>`;
+                }).join('')}`;
+        }
+
+        function restartTest() {
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key >= '1' && e.key <= '4' && !answered && !document.getElementById('test-screen').classList.contains('hidden'))
+                selectOpt(parseInt(e.key) - 1);
+            if (e.key === 'Enter' && document.activeElement === document.getElementById('age-in')) calcIQ();
+        });
+    </script>
+</body>
+</html>

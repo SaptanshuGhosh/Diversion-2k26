@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>SmartEdu — Register</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    body { overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+
+    .hero-noise {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px;
+    }
+    .orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
+    .orb1 { width: 600px; height: 600px; background: rgba(91,110,248,.12); top: -200px; left: -200px; }
+    .orb2 { width: 500px; height: 500px; background: rgba(168,85,247,.08); bottom: -150px; right: -150px; }
+
+    .reg-wrap {
+      position: relative; z-index: 1;
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 40px 24px;
+    }
+
+    .reg-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 44px 42px 40px;
+      width: 100%; max-width: 460px;
+      animation: slideUp .5s cubic-bezier(.22,.68,0,1.2) both;
+      box-shadow: 0 24px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(91,110,248,.05);
+    }
+
+    .reg-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .reg-logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; box-shadow: 0 0 24px var(--accent-glow);
+    }
+    .reg-logo-name { font-family: var(--font-d); font-weight: 700; font-size: 20px; }
+    .reg-logo-sub { font-size: 10px; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; font-family: var(--font-m); }
+
+    .reg-tabs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: var(--surface); border-radius: 12px; padding: 4px;
+      border: 1px solid var(--border); margin-bottom: 24px; gap: 4px;
+    }
+    .reg-tab {
+      padding: 9px; border-radius: 9px; border: none;
+      background: transparent; color: var(--muted);
+      font-family: var(--font-b); font-weight: 600; font-size: 13px;
+      cursor: pointer; transition: all .2s;
+    }
+    .reg-tab.active {
+      background: var(--accent-dim); border: 1px solid rgba(91,110,248,.35); color: var(--accent2);
+    }
+
+    .role-tabs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: var(--surface); border-radius: 10px; padding: 4px;
+      border: 1px solid var(--border); margin-bottom: 20px; gap: 4px;
+    }
+    .role-tab {
+      padding: 8px; border-radius: 8px; border: none;
+      background: transparent; color: var(--muted);
+      font-family: var(--font-b); font-weight: 600; font-size: 12.5px;
+      cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .role-tab.active { background: var(--accent-dim); border: 1px solid rgba(91,110,248,.35); color: var(--accent2); }
+
+    .field-group { display: flex; flex-direction: column; gap: 13px; margin-bottom: 20px; }
+    .reg-field { display: flex; flex-direction: column; gap: 7px; }
+    .reg-field label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .7px; font-family: var(--font-m); }
+    .reg-field input, .reg-field select {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; color: var(--text);
+      font-size: 14px; font-family: var(--font-b); outline: none;
+      transition: border-color .2s, box-shadow .2s; width: 100%;
+    }
+    .reg-field input:focus, .reg-field select:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    .reg-field input.err { border-color: var(--red) !important; }
+    .reg-field select option { background: var(--card); }
+
+    .reg-btn {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--accent), #7B6EF6);
+      color: #fff; border: none; border-radius: 12px;
+      font-family: var(--font-b); font-weight: 700; font-size: 14.5px;
+      cursor: pointer; box-shadow: 0 4px 20px var(--accent-glow);
+      transition: all .2s;
+    }
+    .reg-btn:hover { opacity: .9; transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
+    .reg-btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+
+    .btn-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      display: none; margin: 0 auto;
+    }
+    .reg-btn.loading .btn-text { display: none; }
+    .reg-btn.loading .btn-spinner { display: block; }
+
+    .success-banner {
+      padding: 14px 18px; background: rgba(0,229,160,.08);
+      border: 1px solid rgba(0,229,160,.25); border-radius: 10px;
+      color: var(--green); font-weight: 600; font-size: 13.5px;
+      display: none; margin-bottom: 16px; text-align: center;
+    }
+
+    .divider-line { height: 1px; background: var(--border); margin: 20px 0; position: relative; }
+    .divider-line span {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: var(--card); padding: 0 12px; font-size: 11px; color: var(--muted); font-family: var(--font-m);
+    }
+
+    /* Account list for Update tab */
+    .account-item {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+    }
+    .account-item:hover { border-color: var(--border2); }
+    .account-avatar {
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 16px; flex-shrink: 0;
+      background: var(--accent-dim); border: 1px solid rgba(91,110,248,.2);
+    }
+    .account-name { font-weight: 600; font-size: 13.5px; color: var(--text); }
+    .account-meta { font-size: 11.5px; color: var(--muted); font-family: var(--font-m); }
+    .account-badge {
+      margin-left: auto; padding: 3px 10px; border-radius: 6px; font-size: 11px;
+      font-weight: 700; font-family: var(--font-m);
+    }
+    .badge-student { background: rgba(0,229,160,.1); color: var(--green); border: 1px solid rgba(0,229,160,.2); }
+    .badge-teacher { background: var(--accent-dim); color: var(--accent2); border: 1px solid rgba(91,110,248,.2); }
+
+    .edit-panel {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; margin-top: 16px; display: none;
+    }
+
+    @media (max-width: 480px) { .reg-box { padding: 28px 20px 24px; } }
+  </style>
+</head>
+<body>
+
+<div class="hero-noise"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">🎓</div>
+    <div>
+      <div class="logo-name">SmartEdu</div>
+      <div class="logo-sub">Smart Study Suite</div>
+    </div>
+  </a>
+  <nav>
+    <a class="nav-link" href="login.html">← Back to Login</a>
+  </nav>
+</header>
+
+<div class="reg-wrap">
+  <div class="reg-box">
+
+    <div class="reg-logo">
+      <div class="reg-logo-icon">🎓</div>
+      <div>
+        <div class="reg-logo-name">SmartEdu</div>
+        <div class="reg-logo-sub">Smart Study Suite</div>
+      </div>
+    </div>
+
+    <!-- Tab switcher: Create / Update -->
+    <div class="reg-tabs">
+      <button class="reg-tab active" id="tab-create" onclick="switchTab('create')">✨ Create Account</button>
+      <button class="reg-tab" id="tab-update" onclick="switchTab('update')">✏️ Update Account</button>
+    </div>
+
+    <!-- ── CREATE ACCOUNT ────────────────────── -->
+    <div id="panel-create">
+      <div style="font-family:var(--font-d);font-weight:700;font-size:22px;margin-bottom:4px">Create Account</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Join SmartEdu — it's free</div>
+
+      <!-- Role -->
+      <div class="role-tabs">
+        <button class="role-tab active" id="cr-tab-student" onclick="switchCreateRole('student')">🎒 Student</button>
+        <button class="role-tab" id="cr-tab-teacher" onclick="switchCreateRole('teacher')">📋 Teacher</button>
+      </div>
+
+      <div class="success-banner" id="create-ok">✓ Account created successfully! <a href="login.html" style="color:var(--green);text-decoration:underline">Sign in →</a></div>
+
+      <div class="field-group">
+        <div class="reg-field">
+          <label>Full Name</label>
+          <input type="text" id="c-name" placeholder="Your full name"/>
+        </div>
+        <div class="reg-field">
+          <label>Username / Email</label>
+          <input type="text" id="c-username" placeholder="e.g. john@gmail.com"/>
+        </div>
+        <div class="reg-field">
+          <label style="display:flex;align-items:center;justify-content:space-between;">
+            Password
+            <a href="password-tool.html" target="_blank"
+               style="font-size:10.5px;color:var(--accent2);text-decoration:none;font-family:var(--font-m);font-weight:600;
+                      background:var(--accent-dim);border:1px solid rgba(91,110,248,.25);
+                      border-radius:6px;padding:2px 9px;letter-spacing:.3px;transition:all .2s;"
+               onmouseover="this.style.background='rgba(91,110,248,.22)'"
+               onmouseout="this.style.background='var(--accent-dim)'">
+              🔑 Generate strong password
+            </a>
+          </label>
+          <input type="password" id="c-password" placeholder="Min. 6 characters"/>
+        </div>
+        <div class="reg-field">
+          <label>Confirm Password</label>
+          <input type="password" id="c-confirm" placeholder="Re-enter password"/>
+        </div>
+        <div class="reg-field" id="c-code-wrap" style="display:none">
+          <label>Teacher Access Code</label>
+          <input type="password" id="c-code" placeholder="Provided by administrator"/>
+        </div>
+      </div>
+
+      <div class="err-msg" id="create-err" style="margin-bottom:10px"></div>
+
+      <button class="reg-btn" id="create-btn" onclick="createAccount()">
+        <span class="btn-text">Create Account →</span>
+        <div class="btn-spinner"></div>
+      </button>
+    </div>
+
+    <!-- ── UPDATE ACCOUNT ────────────────────── -->
+    <div id="panel-update" style="display:none">
+      <div style="font-family:var(--font-d);font-weight:700;font-size:22px;margin-bottom:4px">Update Account</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px">Edit an existing account's details or password</div>
+
+      <!-- Auth to edit -->
+      <div id="update-auth-panel">
+        <div class="field-group">
+          <div class="reg-field">
+            <label>Your Username / Email</label>
+            <input type="text" id="u-ident" placeholder="Enter your username"/>
+          </div>
+          <div class="reg-field">
+            <label>Current Password</label>
+            <input type="password" id="u-curpass" placeholder="Verify your identity"/>
+          </div>
+        </div>
+        <div class="err-msg" id="update-auth-err" style="margin-bottom:10px"></div>
+        <button class="reg-btn" onclick="verifyForUpdate()">
+          <span class="btn-text">Verify &amp; Edit →</span>
+        </button>
+      </div>
+
+      <!-- Edit form (shown after verification) -->
+      <div id="update-edit-panel" style="display:none">
+        <div class="success-banner" id="update-ok">✓ Account updated! <a href="login.html" style="color:var(--green);text-decoration:underline">Sign in again →</a></div>
+
+        <div class="field-group">
+          <div class="reg-field">
+            <label>New Display Name</label>
+            <input type="text" id="u-name" placeholder="Leave blank to keep current"/>
+          </div>
+          <div class="reg-field">
+            <label>New Password</label>
+            <input type="password" id="u-newpass" placeholder="Leave blank to keep current"/>
+          </div>
+          <div class="reg-field">
+            <label>Confirm New Password</label>
+            <input type="password" id="u-confpass" placeholder="Re-enter new password"/>
+          </div>
+        </div>
+
+        <div class="err-msg" id="update-err" style="margin-bottom:10px"></div>
+        <button class="reg-btn" onclick="saveUpdate()">
+          <span class="btn-text">Save Changes →</span>
+        </button>
+        <button class="reg-btn" style="background:transparent;color:var(--muted);border:1px solid var(--border);box-shadow:none;margin-top:8px" onclick="cancelUpdate()">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <div class="divider-line"><span>or</span></div>
+    <div style="text-align:center;font-size:12.5px;color:var(--muted)">
+      Already have an account? <a href="login.html" style="color:var(--accent2);font-weight:600;text-decoration:none">Sign In</a>
+    </div>
+
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+/* ── Config ──────────────────────────────────────────────────── */
+const TEACHER_ACCESS_CODE = 'admin123'; // Change to your school's code
+const ACCOUNTS_KEY = 'SmartEdu_Accounts';
+
+const DEFAULT_ACCOUNTS = [
+  { username: 'Student@gmail.com', password: 'student123', role: 'student', name: 'Demo Student' },
+  { username: 'Teacher@gmail.com', password: 'teach123',   role: 'teacher', name: 'Demo Teacher' },
+];
+
+function getAccounts() {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    return raw ? JSON.parse(raw) : [...DEFAULT_ACCOUNTS];
+  } catch { return [...DEFAULT_ACCOUNTS]; }
+}
+
+function saveAccounts(arr) {
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(arr));
+}
+
+/* ── Tab switching ───────────────────────────────────────────── */
+function switchTab(tab) {
+  document.getElementById('tab-create').classList.toggle('active', tab === 'create');
+  document.getElementById('tab-update').classList.toggle('active', tab === 'update');
+  document.getElementById('panel-create').style.display = tab === 'create' ? 'block' : 'none';
+  document.getElementById('panel-update').style.display = tab === 'update' ? 'block' : 'none';
+}
+
+/* ── Role toggle on create form ─────────────────────────────── */
+let createRole = 'student';
+
+function switchCreateRole(role) {
+  createRole = role;
+  document.getElementById('cr-tab-student').classList.toggle('active', role === 'student');
+  document.getElementById('cr-tab-teacher').classList.toggle('active', role === 'teacher');
+  document.getElementById('c-code-wrap').style.display = role === 'teacher' ? 'flex' : 'none';
+}
+
+/* ── Create Account ─────────────────────────────────────────── */
+function createAccount() {
+  const name     = document.getElementById('c-name').value.trim();
+  const username = document.getElementById('c-username').value.trim();
+  const password = document.getElementById('c-password').value;
+  const confirm  = document.getElementById('c-confirm').value;
+  const code     = document.getElementById('c-code').value.trim();
+  const errEl    = document.getElementById('create-err');
+
+  errEl.textContent = '';
+  ['c-name','c-username','c-password','c-confirm'].forEach(id => document.getElementById(id).classList.remove('err'));
+
+  // Validation
+  if (!name)     { errEl.textContent = 'Full name is required.'; document.getElementById('c-name').classList.add('err'); return; }
+  if (!username) { errEl.textContent = 'Username or email is required.'; document.getElementById('c-username').classList.add('err'); return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; document.getElementById('c-password').classList.add('err'); return; }
+  if (password !== confirm)  { errEl.textContent = 'Passwords do not match.'; document.getElementById('c-confirm').classList.add('err'); return; }
+  if (createRole === 'teacher' && code !== TEACHER_ACCESS_CODE) {
+    errEl.textContent = 'Invalid teacher access code.'; document.getElementById('c-code').classList.add('err'); return;
+  }
+
+  const accounts = getAccounts();
+  if (accounts.some(a => a.username.toLowerCase() === username.toLowerCase())) {
+    errEl.textContent = 'An account with this username already exists.';
+    document.getElementById('c-username').classList.add('err'); return;
+  }
+
+  // Loading state
+  const btn = document.getElementById('create-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  setTimeout(() => {
+    accounts.push({ username, password, role: createRole, name });
+    saveAccounts(accounts);
+
+    btn.classList.remove('loading'); btn.disabled = false;
+    document.getElementById('create-ok').style.display = 'block';
+
+    // Clear form
+    ['c-name','c-username','c-password','c-confirm','c-code'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  }, 700);
+}
+
+/* ── Update: verify identity ────────────────────────────────── */
+let updateTargetUsername = null;
+
+function verifyForUpdate() {
+  const ident   = document.getElementById('u-ident').value.trim();
+  const curpass = document.getElementById('u-curpass').value;
+  const errEl   = document.getElementById('update-auth-err');
+
+  errEl.textContent = '';
+  if (!ident || !curpass) { errEl.textContent = 'Please enter your username and password.'; return; }
+
+  const accounts = getAccounts();
+  const match = accounts.find(a =>
+    (a.username.toLowerCase() === ident.toLowerCase() || (a.email && a.email.toLowerCase() === ident.toLowerCase())) &&
+    a.password === curpass
+  );
+
+  if (!match) { errEl.textContent = 'Incorrect username or password.'; return; }
+
+  updateTargetUsername = match.username;
+  document.getElementById('update-auth-panel').style.display = 'none';
+  document.getElementById('update-edit-panel').style.display = 'block';
+  document.getElementById('u-name').placeholder = match.name || match.username;
+}
+
+function saveUpdate() {
+  const newName    = document.getElementById('u-name').value.trim();
+  const newPass    = document.getElementById('u-newpass').value;
+  const confPass   = document.getElementById('u-confpass').value;
+  const errEl      = document.getElementById('update-err');
+
+  errEl.textContent = '';
+  if (newPass && newPass.length < 6)    { errEl.textContent = 'New password must be at least 6 characters.'; return; }
+  if (newPass && newPass !== confPass)  { errEl.textContent = 'Passwords do not match.'; return; }
+  if (!newName && !newPass)             { errEl.textContent = 'Please enter a new name or password to update.'; return; }
+
+  const accounts = getAccounts();
+  const idx = accounts.findIndex(a => a.username === updateTargetUsername);
+  if (idx === -1) { errEl.textContent = 'Account not found.'; return; }
+
+  if (newName) accounts[idx].name = newName;
+  if (newPass) accounts[idx].password = newPass;
+  saveAccounts(accounts);
+
+  // Update active session if it matches
+  try {
+    const session = JSON.parse(localStorage.getItem('SmartEdu_Session') || 'null');
+    if (session && session.username === updateTargetUsername) {
+      if (newName) session.name = newName;
+      localStorage.setItem('SmartEdu_Session', JSON.stringify(session));
+    }
+  } catch {}
+
+  document.getElementById('update-ok').style.display = 'block';
+  document.getElementById('u-name').value = '';
+  document.getElementById('u-newpass').value = '';
+  document.getElementById('u-confpass').value = '';
+}
+
+function cancelUpdate() {
+  updateTargetUsername = null;
+  document.getElementById('update-edit-panel').style.display = 'none';
+  document.getElementById('update-auth-panel').style.display = 'block';
+  document.getElementById('u-ident').value = '';
+  document.getElementById('u-curpass').value = '';
+  document.getElementById('update-auth-err').textContent = '';
+  document.getElementById('update-err').textContent = '';
+  document.getElementById('update-ok').style.display = 'none';
+}
+
+/* ── Clear error on type ─────────────────────────────────────── */
+['c-name','c-username','c-password','c-confirm','c-code'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => {
+    el.classList.remove('err');
+    document.getElementById('create-err').textContent = '';
+  });
+});
+
+/* ── Redirect if already logged in ──────────────────────────── */
+(function() {
+  try {
+    const s = JSON.parse(localStorage.getItem('SmartEdu_Session') || 'null');
+    if (s && s.loggedIn) window.location.href = s.role === 'teacher' ? 'portal.html' : 'index.html';
+  } catch {}
+})();
+
+/* ── Auto-fill suggested password from password-tool.html ───── */
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('usepwd') === '1') {
+    const pwd = sessionStorage.getItem('SmartEdu_SuggestedPassword');
+    if (pwd) {
+      // Wait for DOM to be ready
+      const fill = () => {
+        const pEl = document.getElementById('c-password');
+        const cEl = document.getElementById('c-confirm');
+        if (pEl) pEl.value = pwd;
+        if (cEl) cEl.value = pwd;
+        sessionStorage.removeItem('SmartEdu_SuggestedPassword');
+        // Show a brief toast
+        const toast = document.createElement('div');
+        toast.textContent = '✓ Password filled in! You can change it anytime.';
+        toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,229,160,.12);border:1px solid rgba(0,229,160,.3);color:#00E5A0;padding:10px 22px;border-radius:10px;font-family:var(--font-m);font-size:13px;font-weight:600;z-index:999;transition:opacity .4s;';
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3000);
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fill);
+      } else {
+        fill();
+      }
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

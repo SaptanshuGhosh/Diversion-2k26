@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>SmartEdu — Add Task</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .weight-display{
+      display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;
+    }
+    .w-chip{
+      width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
+      background:var(--surface);color:var(--muted);font-family:var(--font-m);
+      font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:all .2s;font-weight:500;
+    }
+    .w-chip:hover{border-color:var(--accent);color:var(--text)}
+    .w-chip.sel{background:var(--accent-dim);border-color:rgba(91,110,248,.5);color:var(--accent2)}
+    .success-banner{
+      padding:14px 18px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.25);
+      border-radius:10px;color:var(--green);font-weight:600;font-size:13.5px;
+      display:none;margin-top:14px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">🎓</div>
+    <div>
+      <div class="logo-name">SmartEdu</div>
+      <div class="logo-sub">Smart Study Suite</div>
+    </div>
+  </a>
+  <nav>
+    <a class="nav-link" href="portal.html"><span class="nav-icon">📋</span><span class="nav-label">Assignments</span></a>
+    <a class="nav-link" href="dashboard.html"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+    <a class="nav-link" href="add.html"><span class="nav-icon">➕</span><span class="nav-label">Add Task</span></a>
+    <a class="nav-link" href="iq.html"><span class="nav-icon">🧠</span><span class="nav-label">IQ Test</span></a>
+    <a class="nav-link" href="exam.html"><span class="nav-icon">📝</span><span class="nav-label">Exam</span></a>
+    <a class="nav-link" href="tutor.html"><span class="nav-icon">🤖</span><span class="nav-label">Tutor</span></a>
+  </nav>
+  <div id="user-nav-area" style="display:flex; align-items:center; gap:12px;">
+    </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <div class="page-title">Add Task</div>
+    <div class="page-sub">Fill in the details — the dashboard will rank it automatically</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;">
+    <div class="card">
+      <div class="form-grid">
+        <div class="field" style="grid-column:1/-1">
+          <label>Subject</label>
+          <input type="text" id="f-subject" placeholder="e.g. Mathematics, Physics, History…"/>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Task / Assignment Name</label>
+          <input type="text" id="f-task" placeholder="e.g. Chapter 1 Integration"/>
+        </div>
+        <div class="field">
+          <label>Due Date</label>
+          <input type="date" id="f-due"/>
+        </div>
+        <div class="field">
+          <label>Days Required to Complete</label>
+          <input type="number" id="f-days" min="1" max="60" placeholder="e.g. 3"/>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Priority Weight (1–10)</label>
+          <div class="weight-display" id="w-chips"></div>
+          <input type="hidden" id="f-weight" value=""/>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Notes (optional)</label>
+          <input type="text" id="f-notes" placeholder="Any extra details or reminders…"/>
+        </div>
+      </div>
+      <div class="err-msg" id="f-err"></div>
+      <div class="success-banner" id="f-ok">✓ Task added successfully! <a href="dashboard.html" style="color:var(--green);text-decoration:underline">View on Dashboard →</a></div>
+      <div style="display:flex;gap:10px;margin-top:22px">
+        <button class="btn btn-primary" onclick="addTask()">➕ Add Task</button>
+        <a class="btn btn-ghost" href="dashboard.html">← Dashboard</a>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="padding:20px">
+        <div class="section-label">Weight Guide</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <span style="color:var(--muted)">1–3</span>
+            <span style="color:var(--green);font-weight:600">Low Priority</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <span style="color:var(--muted)">4–6</span>
+            <span style="color:var(--yellow);font-weight:600">Medium Priority</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <span style="color:var(--muted)">7–9</span>
+            <span style="color:var(--orange);font-weight:600">High Priority</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <span style="color:var(--muted)">10</span>
+            <span style="color:var(--red);font-weight:600">Critical</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:20px">
+        <div class="section-label">Recently Added</div>
+        <div id="recent-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+function buildChips() {
+  const wrap = document.getElementById('w-chips');
+  wrap.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'w-chip';
+    btn.type = 'button';
+    btn.textContent = i;
+    btn.onclick = () => {
+      document.querySelectorAll('.w-chip').forEach(c => c.classList.remove('sel'));
+      btn.classList.add('sel');
+      document.getElementById('f-weight').value = i;
+    };
+    wrap.appendChild(btn);
+  }
+}
+
+function addTask() {
+  const subjectEl = document.getElementById('f-subject');
+  const taskEl    = document.getElementById('f-task');
+  const dueEl     = document.getElementById('f-due');
+  const daysEl    = document.getElementById('f-days');
+  const weightEl  = document.getElementById('f-weight');
+  const notesEl   = document.getElementById('f-notes');
+  const errEl     = document.getElementById('f-err');
+
+  const subject  = subjectEl.value.trim();
+  const task     = taskEl.value.trim();
+  const deadline = dueEl.value;
+  const days     = parseInt(daysEl.value);
+  const weight   = parseFloat(weightEl.value);
+
+  errEl.textContent = '';
+  [subjectEl, taskEl, dueEl, daysEl].forEach(e => e.classList.remove('err'));
+
+  if (!subject || !task || !deadline || isNaN(days) || isNaN(weight)) {
+    errEl.textContent = 'Please fill in all fields and select a priority weight.';
+    if (!subject)  subjectEl.classList.add('err');
+    if (!task)     taskEl.classList.add('err');
+    if (!deadline) dueEl.classList.add('err');
+    if (isNaN(days)) daysEl.classList.add('err');
+    return;
+  }
+  const todayStr = todayDate().toISOString().split('T')[0];
+  if (deadline < todayStr) {
+    errEl.textContent = 'Due date cannot be in the past.';
+    dueEl.classList.add('err'); return;
+  }
+
+  const tasks = loadTasks();
+  tasks.push({ id: Date.now(), subject, task, deadline, daysRequired: days, weight, notes: notesEl.value.trim(), completed: false });
+  saveTasks(tasks);
+
+  subjectEl.value = taskEl.value = dueEl.value = daysEl.value = notesEl.value = '';
+  weightEl.value = '';
+  document.querySelectorAll('.w-chip').forEach(c => c.classList.remove('sel'));
+
+  const ok = document.getElementById('f-ok');
+  ok.style.display = 'block';
+  setTimeout(() => ok.style.display = 'none', 4000);
+  renderRecent();
+}
+
+function renderRecent() {
+  const tasks = loadTasks().slice(-5).reverse();
+  const el = document.getElementById('recent-list');
+  if (!tasks.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:12.5px;padding:8px 0">No tasks yet.</div>`;
+    return;
+  }
+  el.innerHTML = tasks.map(t => {
+    const s = STATUS_MAP[enrichTask(t).status] || STATUS_MAP['on-track'];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.task)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-m)">${esc(t.subject)}</div>
+      </div>
+      <span style="background:${s.color}18;color:${s.color};border:1px solid ${s.color}30;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap">${s.label}</span>
+    </div>`;
+  }).join('').replace(/border-bottom:1px solid var\(--border\);">(?=[^<]*<\/div>\s*$)/,'">');
+}
+
+buildChips();
+renderRecent();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  document.getElementById('f-due').min = new Date().toISOString().split('T')[0];
+});
+</script>
+
+<style>
+@media(max-width:760px){
+  main > div[style*="grid-template-columns"]{grid-template-columns:1fr!important}
+}
+</style>
+</body>
+</html>

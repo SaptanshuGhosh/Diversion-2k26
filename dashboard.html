@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>SmartEdu — Dashboard</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+    .filter-btn{padding:5px 14px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--font-b);font-weight:600;font-size:12px;cursor:pointer;transition:all .2s}
+    .filter-btn.active{background:var(--accent-dim);border-color:rgba(91,110,248,.35);color:var(--accent2)}
+    .filter-btn:hover:not(.active){border-color:var(--border2);color:var(--text2)}
+    .sort-select{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px;color:var(--text2);font-size:12px;font-family:var(--font-b);outline:none;cursor:pointer;margin-left:auto}
+    .sort-select:focus{border-color:var(--accent)}
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">🎓</div>
+    <div>
+      <div class="logo-name">SmartEdu</div>
+      <div class="logo-sub">Smart Study Suite</div>
+    </div>
+  </a>
+  <nav>
+    <a class="nav-link" href="portal.html"><span class="nav-icon">📋</span><span class="nav-label">Assignments</span></a>
+    <a class="nav-link" href="dashboard.html"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+    <a class="nav-link" href="add.html"><span class="nav-icon">➕</span><span class="nav-label">Add Task</span></a>
+    <a class="nav-link" href="iq.html"><span class="nav-icon">🧠</span><span class="nav-label">IQ Test</span></a>
+    <a class="nav-link" href="exam.html"><span class="nav-icon">📝</span><span class="nav-label">Exam</span></a>
+    <a class="nav-link" href="tutor.html"><span class="nav-icon">🤖</span><span class="nav-label">Tutor</span></a>
+  </nav>
+  <div id="user-nav-area" style="display:flex; align-items:center; gap:12px;">
+    </div>
+</header>
+
+<main>
+  <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Assignments ranked by urgency, risk &amp; weight</div>
+    </div>
+    <a href="add.html" class="btn btn-primary btn-sm">➕ New Task</a>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val" id="s-total" style="color:var(--accent2)">0</div>
+      <div class="stat-lbl">Total Tasks</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="s-risk" style="color:var(--red)">0</div>
+      <div class="stat-lbl">At Risk / Overdue</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="s-done" style="color:var(--green)">0</div>
+      <div class="stat-lbl">Completed</div>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('overdue',this)">🔴 Overdue</button>
+    <button class="filter-btn" onclick="setFilter('at-risk',this)">🟡 At Risk</button>
+    <button class="filter-btn" onclick="setFilter('urgent',this)">🟠 Urgent</button>
+    <button class="filter-btn" onclick="setFilter('on-track',this)">🟢 On Track</button>
+    <button class="filter-btn" onclick="setFilter('done',this)">✓ Done</button>
+    <select class="sort-select" onchange="render()" id="sort-sel">
+      <option value="priority">Sort: Priority</option>
+      <option value="date">Sort: Due Date</option>
+      <option value="weight">Sort: Weight</option>
+    </select>
+  </div>
+
+  <div id="task-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+let currentFilter = 'all';
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function render() {
+  const tasks = loadTasks();
+  let list = prioritizeTasks(tasks);
+
+  const sort = document.getElementById('sort-sel').value;
+  if (sort === 'date') list.sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+  if (sort === 'weight') list.sort((a,b) => b.weight - a.weight);
+
+  const filtered = currentFilter === 'all' ? list : list.filter(t => t.status === currentFilter);
+
+  document.getElementById('s-total').textContent = tasks.length;
+  document.getElementById('s-risk').textContent  = list.filter(t => t.status === 'at-risk' || t.status === 'overdue').length;
+  document.getElementById('s-done').textContent  = tasks.filter(t => t.completed).length;
+
+  const el = document.getElementById('task-list');
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state">
+      ${currentFilter === 'all' ? '📚 No tasks yet — <a href="add.html" style="color:var(--accent2)">add your first task</a> to get started!' : '✨ No tasks in this category'}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map((t, i) => {
+    const s = STATUS_MAP[t.status] || STATUS_MAP['on-track'];
+    const rank = i === 0 ? 'r1' : i === 1 ? 'r2' : '';
+    const daysLabel = t.daysLeft < 0
+      ? `${Math.abs(t.daysLeft)}d overdue`
+      : t.daysLeft === 0 ? 'Due today!'
+      : `${t.daysLeft}d left`;
+    const progressPct = t.daysLeft < 0 ? 100 : Math.max(5, Math.min(95, 100 - (t.daysLeft / 30) * 100));
+    return `
+      <div class="task-card slide-up ${t.status}" style="animation-delay:${i*35}ms">
+        <div class="rank-badge ${rank}">${i+1}</div>
+        <div class="t-info">
+          <div class="t-title">
+            ${esc(t.task)}
+            <span class="status-pill" style="background:${s.color}18;color:${s.color};border:1px solid ${s.color}30">${s.label}</span>
+          </div>
+          <div class="t-subject">${esc(t.subject)}</div>
+          <div class="t-meta">Due ${formatDate(t.deadline)} · ${t.daysRequired||1}d to complete · <span style="color:${t.daysLeft<=0?'var(--red)':t.daysLeft<=3?'var(--orange)':'var(--text2)'}">${daysLabel}</span></div>
+          ${t.notes ? `<div class="t-meta" style="margin-top:3px;color:var(--muted);font-size:11px;font-style:italic">${esc(t.notes)}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+          <div class="w-box">
+            <div class="w-num">${t.weight||'—'}<sup>/10</sup></div>
+            <div class="w-lbl">weight</div>
+          </div>
+          <button class="done-btn ${t.completed?'done':''}" onclick="toggleDone(${t.id})">
+            ${t.completed ? '✓ Done' : 'Mark Done'}
+          </button>
+        </div>
+        <button class="rm-btn" onclick="removeTask(${t.id})" title="Remove task">×</button>
+      </div>`;
+  }).join('');
+}
+
+function toggleDone(id) {
+  const tasks = loadTasks();
+  const idx = tasks.findIndex(t => t.id === id);
+  if (idx !== -1) { tasks[idx].completed = !tasks[idx].completed; saveTasks(tasks); render(); }
+}
+
+function removeTask(id) {
+  if (!confirm('Remove this task?')) return;
+  saveTasks(loadTasks().filter(t => t.id !== id));
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

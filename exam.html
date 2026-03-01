@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="security.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>SmartEdu — AI Exam Generator</title>
+  <link rel="stylesheet" href="shared.css"/>
+  <style>
+    .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .difficulty-chips{display:flex;gap:8px;flex-wrap:wrap}
+    .diff-chip{
+      padding:8px 18px;border-radius:9px;border:1px solid var(--border);
+      background:transparent;color:var(--muted);font-family:var(--font-b);
+      font-weight:600;font-size:13px;cursor:pointer;transition:all .2s;
+    }
+    .diff-chip.active{background:var(--accent-dim);border-color:rgba(91,110,248,.4);color:var(--accent2)}
+    .diff-chip:hover:not(.active){border-color:var(--border2);color:var(--text)}
+
+    .gen-loading{
+      text-align:center;padding:60px 20px;
+    }
+    .gen-spinner{
+      width:48px;height:48px;border:3px solid var(--border);
+      border-top-color:var(--accent);border-radius:50%;
+      animation:spin 1s linear infinite;margin:0 auto 20px;
+    }
+    .gen-loading p{color:var(--text2);font-size:14px;line-height:1.7}
+
+    .exam-header{
+      background:var(--card);border:1px solid var(--border);border-radius:var(--r2);
+      padding:22px 26px;margin-bottom:20px;
+      display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    }
+    .exam-title{font-family:var(--font-d);font-weight:700;font-size:20px}
+    .exam-meta-row{display:flex;gap:14px;font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:4px}
+
+    .score-banner{
+      padding:20px 24px;border-radius:var(--r2);margin-bottom:20px;text-align:center;
+    }
+    .score-banner.pass{background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.25)}
+    .score-banner.fail{background:rgba(255,61,107,.08);border:1px solid rgba(255,61,107,.25)}
+    .score-big{font-family:var(--font-d);font-weight:700;font-size:52px;line-height:1}
+    .score-sub{font-size:14px;color:var(--text2);margin-top:6px}
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">
+    <div class="logo-icon">🎓</div>
+    <div>
+      <div class="logo-name">SmartEdu</div>
+      <div class="logo-sub">Smart Study Suite</div>
+    </div>
+  </a>
+  <nav>
+    <a class="nav-link" href="portal.html"><span class="nav-icon">📋</span><span class="nav-label">Assignments</span></a>
+    <a class="nav-link" href="dashboard.html"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+    <a class="nav-link" href="add.html"><span class="nav-icon">➕</span><span class="nav-label">Add Task</span></a>
+    <a class="nav-link" href="iq.html"><span class="nav-icon">🧠</span><span class="nav-label">IQ Test</span></a>
+    <a class="nav-link" href="exam.html"><span class="nav-icon">📝</span><span class="nav-label">Exam</span></a>
+    <a class="nav-link" href="tutor.html"><span class="nav-icon">🤖</span><span class="nav-label">Tutor</span></a>
+  </nav>
+  <div id="user-nav-area" style="display:flex; align-items:center; gap:12px;"></div>
+</header>
+<main>
+  <div id="setup-screen">
+    <div class="page-header">
+      <div class="page-title">AI Exam Generator</div>
+      <div class="page-sub">Pick a subject and difficulty — Gemini builds a custom exam for you</div>
+    </div>
+
+    <div class="card" style="max-width:600px">
+      <div class="setup-grid">
+        <div class="field" style="grid-column:1/-1">
+          <label>Subject / Topic</label>
+          <input type="text" id="e-subject" placeholder="e.g. Photosynthesis, World War II, Calculus…"/>
+        </div>
+        <div class="field">
+          <label>Number of Questions</label>
+          <select id="e-count">
+            <option value="5">5 Questions</option>
+            <option value="10" selected>10 Questions</option>
+            <option value="15">15 Questions</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Question Type</label>
+          <select id="e-type">
+            <option value="mcq">Multiple Choice (MCQ)</option>
+            <option value="truefalse">True / False</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Difficulty</label>
+          <div class="difficulty-chips">
+            <button class="diff-chip" data-v="easy" onclick="setDiff(this)">🟢 Easy</button>
+            <button class="diff-chip active" data-v="medium" onclick="setDiff(this)">🟡 Medium</button>
+            <button class="diff-chip" data-v="hard" onclick="setDiff(this)">🔴 Hard</button>
+            <button class="diff-chip" data-v="mixed" onclick="setDiff(this)">🎲 Mixed</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="err-msg" id="e-err"></div>
+      <div style="margin-top:22px">
+        <button class="btn btn-primary" onclick="generateExam()" id="gen-btn" style="font-size:14.5px;padding:12px 28px">
+          ✨ Generate Exam
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-screen" style="display:none">
+    <div class="gen-loading">
+      <div class="gen-spinner"></div>
+      <div style="font-family:var(--font-d);font-weight:700;font-size:20px;margin-bottom:10px">Generating your exam…</div>
+      <p>Gemini is crafting personalized questions<br>with explanations just for you.</p>
+    </div>
+  </div>
+
+  <div id="exam-screen" style="display:none">
+    <div class="exam-header">
+      <div>
+        <div class="exam-title" id="ex-title"></div>
+        <div class="exam-meta-row">
+          <span id="ex-meta-q"></span>
+          <span id="ex-meta-d"></span>
+          <span id="ex-meta-t"></span>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="resetExam()">← New Exam</button>
+    </div>
+
+    <div id="questions-area"></div>
+
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn btn-primary" id="submit-btn" onclick="submitExam()">Submit Exam →</button>
+    </div>
+  </div>
+
+  <div id="result-screen" style="display:none">
+    <div id="score-banner" class="score-banner">
+      <div class="score-big" id="final-score"></div>
+      <div class="score-sub" id="final-label"></div>
+    </div>
+
+    <div id="results-area"></div>
+
+    <div style="margin-top:24px;display:flex;gap:12px">
+      <button class="btn btn-primary" onclick="retryExam()">↺ Retake</button>
+      <button class="btn btn-ghost" onclick="resetExam()">New Exam</button>
+      <a class="btn btn-ghost" href="dashboard.html">Dashboard</a>
+    </div>
+  </div>
+
+  <div id="api-key-banner" style="display:none;margin-top:20px">
+    <div class="card" style="max-width:600px;border-color:rgba(245,200,66,.3);background:rgba(245,200,66,.04)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:20px">🔑</span>
+        <div>
+          <div style="font-weight:700;font-size:14.5px;color:var(--yellow)">Gemini API Key Required</div>
+          <div style="font-size:12.5px;color:var(--text2);margin-top:2px">The AI Exam Generator needs your API key to work. Your key is stored only in your browser.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input type="password" id="api-key-input" placeholder="AIzaSy..." 
+          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-m);font-size:13px;outline:none"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+        <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted)">
+        Get your API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent2)">Google AI Studio</a>
+        · Key is only saved in your browser's localStorage
+      </div>
+      <div id="api-key-saved" style="display:none;margin-top:10px;color:var(--green);font-size:13px;font-weight:600">✓ API key saved! You can now generate exams.</div>
+    </div>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+let examData = null;
+let currentDiff = 'medium';
+let lastSetup = {};
+
+function setDiff(btn) {
+  document.querySelectorAll('.diff-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  currentDiff = btn.dataset.v;
+}
+
+async function generateExam() {
+  const subject = document.getElementById('e-subject').value.trim();
+  const count   = document.getElementById('e-count').value;
+  const type    = document.getElementById('e-type').value;
+  const errEl   = document.getElementById('e-err');
+
+  errEl.textContent = '';
+  if (!subject) { errEl.textContent = 'Please enter a subject or topic.'; return; }
+
+  const apiKey = localStorage.getItem('SmartEdu_APIKey') || '';
+  if (!apiKey) {
+    errEl.textContent = 'Please enter your Gemini API key below to use this feature.';
+    showApiKeyBanner();
+    return;
+  }
+
+  lastSetup = { subject, count, type, diff: currentDiff };
+
+  document.getElementById('setup-screen').style.display  = 'none';
+  document.getElementById('loading-screen').style.display = 'block';
+
+  const typeDesc = type === 'mcq' ? 'multiple choice with 4 options (A,B,C,D)' :
+                   type === 'truefalse' ? 'true/false' : 'a mix of multiple choice and true/false';
+
+  const prompt = `Generate a ${count}-question ${currentDiff} difficulty exam on "${subject}".
+Question type: ${typeDesc}.
+
+Respond ONLY with a valid JSON object in this exact format:
+{
+  "title": "Exam title here",
+  "questions": [
+    {
+      "question": "Question text here?",
+      "type": "mcq",
+      "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
+      "answer": "A) option1",
+      "explanation": "Brief explanation of why this is correct."
+    }
+  ]
+}
+
+For true/false questions, use type "tf", options ["True", "False"], and answer "True" or "False".
+Do not include any text before or after the JSON. Return pure JSON only.`;
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await res.json();
+    
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.candidates[0].content.parts[0].text;
+    
+    // Clean up Markdown JSON formatting before parsing
+    const cleanJSON = raw.replace(/```json|```/gi, '').trim();
+    examData = JSON.parse(cleanJSON);
+    
+    document.getElementById('loading-screen').style.display = 'none';
+    renderExam();
+  } catch(e) {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+    errEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderExam() {
+  document.getElementById('exam-screen').style.display = 'block';
+  document.getElementById('ex-title').textContent = examData.title || lastSetup.subject + ' Exam';
+  document.getElementById('ex-meta-q').textContent = `${examData.questions.length} Questions`;
+  document.getElementById('ex-meta-d').textContent = lastSetup.diff.charAt(0).toUpperCase() + lastSetup.diff.slice(1);
+  document.getElementById('ex-meta-t').textContent = lastSetup.type.toUpperCase();
+
+  document.getElementById('questions-area').innerHTML = examData.questions.map((q, i) => {
+    const isTF = q.type === 'tf';
+    const opts = (q.options || (isTF ? ['True','False'] : []));
+    return `<div class="q-card slide-up" id="qc-${i}" style="animation-delay:${i*40}ms">
+      <div class="q-num">QUESTION ${i+1} OF ${examData.questions.length}${isTF?' · TRUE / FALSE':''}</div>
+      <div class="q-text">${esc(q.question)}</div>
+      <div class="${isTF?'options':'options'}" style="${isTF?'grid-template-columns:1fr 1fr;max-width:320px':''}">
+        ${opts.map((o, oi) => `
+          <button class="opt-btn" id="opt-${i}-${oi}" onclick="selectOpt(${i},${oi},this)">
+            ${!isTF?`<span class="opt-lbl">${String.fromCharCode(65+oi)}</span>`:''}${esc(o)}
+          </button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+const userSelections = {};
+
+function selectOpt(qi, oi, btn) {
+  const q = examData.questions[qi];
+  const opts = btn.closest('.options').querySelectorAll('.opt-btn');
+  opts.forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  userSelections[qi] = (q.options || ['True','False'])[oi];
+}
+
+function submitExam() {
+  const total = examData.questions.length;
+  const answered = Object.keys(userSelections).length;
+  if (answered < total) {
+    if (!confirm(`You've answered ${answered}/${total} questions. Submit anyway?`)) return;
+  }
+
+  let correct = 0;
+  examData.questions.forEach((q, i) => {
+    if (userSelections[i] === q.answer) correct++;
+  });
+
+  document.getElementById('exam-screen').style.display   = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+
+  const pct = Math.round((correct / total) * 100);
+  const pass = pct >= 60;
+
+  const banner = document.getElementById('score-banner');
+  banner.className = 'score-banner ' + (pass ? 'pass' : 'fail');
+  document.getElementById('final-score').textContent = `${pct}%`;
+  document.getElementById('final-score').style.color = pass ? 'var(--green)' : 'var(--red)';
+  document.getElementById('final-label').textContent = `${correct}/${total} correct · ${pass ? '✅ Passed' : '❌ Failed — Review below'}`;
+
+  document.getElementById('results-area').innerHTML = examData.questions.map((q, i) => {
+    const userAns = userSelections[i];
+    const isCorrect = userAns === q.answer;
+    return `<div class="q-card" style="margin-bottom:12px">
+      <div class="q-num">Q${i+1} — ${isCorrect?'✅ Correct':userAns?'❌ Wrong':'⚪ Not answered'}</div>
+      <div class="q-text" style="font-size:14.5px">${esc(q.question)}</div>
+      <div style="font-family:var(--font-m);font-size:13px;margin:10px 0;display:flex;gap:16px;flex-wrap:wrap">
+        <span style="color:var(--muted)">Your answer: <span style="color:${isCorrect?'var(--green)':'var(--red)'}">${userAns||'None'}</span></span>
+        <span style="color:var(--muted)">Correct: <span style="color:var(--green)">${q.answer}</span></span>
+      </div>
+      <div class="explanation">${esc(q.explanation)}</div>
+    </div>`;
+  }).join('');
+}
+
+function retryExam() {
+  Object.keys(userSelections).forEach(k => delete userSelections[k]);
+  document.getElementById('result-screen').style.display = 'none';
+  renderExam();
+  document.getElementById('exam-screen').style.display = 'block';
+}
+
+function resetExam() {
+  examData = null;
+  Object.keys(userSelections).forEach(k => delete userSelections[k]);
+  document.getElementById('exam-screen').style.display  = 'none';
+  document.getElementById('result-screen').style.display= 'none';
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('e-subject').value = '';
+  document.getElementById('e-err').textContent = '';
+}
+
+function showApiKeyBanner() {
+  document.getElementById('api-key-banner').style.display = 'block';
+  const existingKey = localStorage.getItem('SmartEdu_APIKey');
+  if (existingKey) document.getElementById('api-key-input').value = existingKey;
+}
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key.startsWith('AIza')) { alert('Please enter a valid Gemini API key (starts with AIza)'); return; }
+  localStorage.setItem('SmartEdu_APIKey', key);
+  document.getElementById('api-key-saved').style.display = 'block';
+  setTimeout(() => { document.getElementById('api-key-saved').style.display = 'none'; }, 3000);
+}
+
+// Show key banner on page load if key not set
+document.addEventListener('DOMContentLoaded', () => {
+  if (!localStorage.getItem('SmartEdu_APIKey')) showApiKeyBanner();
+});
+
+</script>
+</body>
+</html>
