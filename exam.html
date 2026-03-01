@@ -81,6 +81,70 @@
       padding:4px 8px;border-radius:6px;transition:color .2s;display:none;
     }
     #key-clear-btn:hover{color:var(--red)}
+
+    /* ── Question cards ── */
+    .q-card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--r2);
+      padding:22px 24px;
+      margin-bottom:16px;
+    }
+    .q-num{
+      font-family:var(--font-m);font-size:11.5px;font-weight:600;
+      letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+      margin-bottom:10px;
+    }
+    .q-text{
+      font-size:15.5px;font-weight:600;line-height:1.55;
+      margin-bottom:4px;
+    }
+    .explanation{
+      margin-top:10px;padding:12px 14px;
+      background:rgba(91,110,248,.07);border-left:3px solid var(--accent);
+      border-radius:0 8px 8px 0;font-size:13px;color:var(--text2);line-height:1.6;
+    }
+    /* ── Option buttons ── */
+    .options{display:grid;gap:10px;margin-top:14px;}
+    .opt-btn{
+      display:flex;align-items:center;gap:12px;
+      width:100%;padding:13px 16px;
+      border-radius:10px;
+      border:2px solid var(--border);
+      background:var(--surface);
+      color:var(--text);
+      font-family:var(--font-m);font-size:14px;
+      cursor:pointer;text-align:left;
+      transition:border-color .15s, background .15s, color .15s, box-shadow .15s, transform .1s;
+    }
+    .opt-btn:hover:not(.selected){
+      border-color:var(--accent);
+      background:var(--accent-dim);
+      color:var(--accent2);
+    }
+    /* Selected state — high contrast, impossible to miss */
+    .opt-btn.selected{
+      border-color:var(--accent) !important;
+      background:var(--accent-dim) !important;
+      color:var(--accent2) !important;
+      font-weight:700;
+      box-shadow:0 0 0 3px rgba(91,110,248,.22);
+      transform:translateY(-1px);
+    }
+    .opt-lbl{
+      min-width:28px;height:28px;
+      display:flex;align-items:center;justify-content:center;
+      border-radius:6px;
+      background:var(--border);
+      color:var(--muted);
+      font-weight:700;font-size:12px;
+      flex-shrink:0;
+      transition:background .15s, color .15s;
+    }
+    .opt-btn.selected .opt-lbl{
+      background:var(--accent);
+      color:#fff;
+    }
   </style>
 </head>
 <body>
