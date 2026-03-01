@@ -42,6 +42,45 @@
     .score-banner.fail{background:rgba(255,61,107,.08);border:1px solid rgba(255,61,107,.25)}
     .score-big{font-family:var(--font-d);font-weight:700;font-size:52px;line-height:1}
     .score-sub{font-size:14px;color:var(--text2);margin-top:6px}
+
+    /* API Key section — always visible */
+    .api-key-section{
+      margin-top:24px;
+      border:1px solid var(--border);
+      border-radius:var(--r2);
+      background:var(--card);
+      padding:18px 20px;
+      max-width:600px;
+    }
+    .api-key-section.has-key{
+      border-color:rgba(0,229,160,.25);
+      background:rgba(0,229,160,.03);
+    }
+    .api-key-header{
+      display:flex;align-items:center;gap:10px;margin-bottom:14px;
+    }
+    .api-key-status{
+      font-size:12px;font-family:var(--font-m);
+      padding:3px 10px;border-radius:20px;font-weight:600;margin-left:auto;
+    }
+    .api-key-status.set{background:rgba(0,229,160,.15);color:var(--green)}
+    .api-key-status.missing{background:rgba(255,61,107,.12);color:var(--red)}
+    .api-key-row{display:flex;gap:8px;align-items:center}
+    .api-key-row input{
+      flex:1;background:var(--surface);border:1px solid var(--border);
+      border-radius:8px;padding:10px 14px;color:var(--text);
+      font-family:var(--font-m);font-size:13px;outline:none;transition:border-color .2s;
+    }
+    .api-key-row input:focus{border-color:var(--accent)}
+    .api-key-hint{margin-top:8px;font-size:12px;color:var(--muted)}
+    .api-key-hint a{color:var(--accent2)}
+    #key-saved-msg{display:none;color:var(--green);font-weight:600;font-size:12px;margin-left:8px}
+    #key-clear-btn{
+      background:transparent;border:none;color:var(--muted);
+      font-size:12px;font-family:var(--font-m);cursor:pointer;
+      padding:4px 8px;border-radius:6px;transition:color .2s;display:none;
+    }
+    #key-clear-btn:hover{color:var(--red)}
   </style>
 </head>
 <body>
@@ -64,6 +103,7 @@
   </nav>
   <div id="user-nav-area" style="display:flex; align-items:center; gap:12px;"></div>
 </header>
+
 <main>
   <div id="setup-screen">
     <div class="page-header">
@@ -156,35 +196,39 @@
     </div>
   </div>
 
-  <div id="api-key-banner" style="display:none;margin-top:20px">
-    <div class="card" style="max-width:600px;border-color:rgba(245,200,66,.3);background:rgba(245,200,66,.04)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <span style="font-size:20px">🔑</span>
-        <div>
-          <div style="font-weight:700;font-size:14.5px;color:var(--yellow)">Gemini API Key Required</div>
-          <div style="font-size:12.5px;color:var(--text2);margin-top:2px">The AI Exam Generator needs your API key to work. Your key is stored only in your browser.</div>
-        </div>
+  <!-- ── API Key Section (always visible) ── -->
+  <div class="api-key-section" id="api-key-section">
+    <div class="api-key-header">
+      <span style="font-size:20px">🔑</span>
+      <div>
+        <div style="font-weight:700;font-size:14px;">Gemini API Key</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:1px">Required to generate exams. Stored only in your browser.</div>
       </div>
-      <div style="display:flex;gap:8px">
-        <input type="password" id="api-key-input" placeholder="AIzaSy..." 
-          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-m);font-size:13px;outline:none"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
-        <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
-      </div>
-      <div style="margin-top:10px;font-size:12px;color:var(--muted)">
-        Get your API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent2)">Google AI Studio</a>
-        · Key is only saved in your browser's localStorage
-      </div>
-      <div id="api-key-saved" style="display:none;margin-top:10px;color:var(--green);font-size:13px;font-weight:600">✓ API key saved! You can now generate exams.</div>
+      <span class="api-key-status missing" id="key-status-badge">Not set</span>
+    </div>
+    <div class="api-key-row">
+      <input type="password" id="api-key-input" placeholder="AIzaSy…"
+        oninput="onKeyInput()"
+        onfocus="this.style.borderColor='var(--accent)'"
+        onblur="this.style.borderColor='var(--border)'"
+      />
+      <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
+      <button id="key-clear-btn" onclick="clearApiKey()">Remove</button>
+    </div>
+    <div class="api-key-hint">
+      Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+      &nbsp;·&nbsp; Key is never sent anywhere except directly to Google's API.
+      <span id="key-saved-msg">✓ Saved!</span>
     </div>
   </div>
+
 </main>
 
 <script src="shared.js"></script>
 <script>
-let examData = null;
+let examData    = null;
 let currentDiff = 'medium';
-let lastSetup = {};
+let lastSetup   = {};
 
 function setDiff(btn) {
   document.querySelectorAll('.diff-chip').forEach(c => c.classList.remove('active'));
@@ -192,6 +236,52 @@ function setDiff(btn) {
   currentDiff = btn.dataset.v;
 }
 
+/* ── API Key UI ── */
+function refreshKeyUI() {
+  const existing = localStorage.getItem('SmartEdu_APIKey') || '';
+  const badge    = document.getElementById('key-status-badge');
+  const section  = document.getElementById('api-key-section');
+  const clearBtn = document.getElementById('key-clear-btn');
+  const input    = document.getElementById('api-key-input');
+
+  if (existing) {
+    badge.textContent = '✓ Set';
+    badge.className   = 'api-key-status set';
+    section.classList.add('has-key');
+    clearBtn.style.display = 'inline';
+    input.value       = '';
+    input.placeholder = '••••••••••••••••••••••••••••••••••••';
+  } else {
+    badge.textContent = 'Not set';
+    badge.className   = 'api-key-status missing';
+    section.classList.remove('has-key');
+    clearBtn.style.display = 'none';
+    input.placeholder = 'AIzaSy…';
+  }
+}
+
+function onKeyInput() {
+  document.getElementById('api-key-input').placeholder = 'AIzaSy…';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { alert('Please paste your Gemini API key first.'); return; }
+  if (!key.startsWith('AIza')) { alert('That doesn\'t look like a Gemini key.\nGemini API keys start with "AIza".'); return; }
+  localStorage.setItem('SmartEdu_APIKey', key);
+  document.getElementById('key-saved-msg').style.display = 'inline';
+  setTimeout(() => { document.getElementById('key-saved-msg').style.display = 'none'; }, 2500);
+  refreshKeyUI();
+}
+
+function clearApiKey() {
+  if (!confirm('Remove your saved API key?')) return;
+  localStorage.removeItem('SmartEdu_APIKey');
+  document.getElementById('api-key-input').value = '';
+  refreshKeyUI();
+}
+
+/* ── Exam Generation ── */
 async function generateExam() {
   const subject = document.getElementById('e-subject').value.trim();
   const count   = document.getElementById('e-count').value;
@@ -204,16 +294,16 @@ async function generateExam() {
   const apiKey = localStorage.getItem('SmartEdu_APIKey') || '';
   if (!apiKey) {
     errEl.textContent = 'Please enter your Gemini API key below to use this feature.';
-    showApiKeyBanner();
+    document.getElementById('api-key-input').focus();
     return;
   }
 
   lastSetup = { subject, count, type, diff: currentDiff };
 
-  document.getElementById('setup-screen').style.display  = 'none';
+  document.getElementById('setup-screen').style.display   = 'none';
   document.getElementById('loading-screen').style.display = 'block';
 
-  const typeDesc = type === 'mcq' ? 'multiple choice with 4 options (A,B,C,D)' :
+  const typeDesc = type === 'mcq'      ? 'multiple choice with 4 options (A,B,C,D)' :
                    type === 'truefalse' ? 'true/false' : 'a mix of multiple choice and true/false';
 
   const prompt = `Generate a ${count}-question ${currentDiff} difficulty exam on "${subject}".
@@ -237,33 +327,39 @@ For true/false questions, use type "tf", options ["True", "False"], and answer "
 Do not include any text before or after the JSON. Return pure JSON only.`;
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    );
 
     const data = await res.json();
-    
     if (data.error) throw new Error(data.error.message);
 
-    const raw = data.candidates[0].content.parts[0].text;
-    
-    // Clean up Markdown JSON formatting before parsing
+    const raw       = data.candidates[0].content.parts[0].text;
     const cleanJSON = raw.replace(/```json|```/gi, '').trim();
     examData = JSON.parse(cleanJSON);
-    
+
     document.getElementById('loading-screen').style.display = 'none';
     renderExam();
-  } catch(e) {
+
+  } catch (e) {
     document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('setup-screen').style.display = 'block';
-    errEl.textContent = 'Error: ' + e.message;
+    document.getElementById('setup-screen').style.display   = 'block';
+    const isKeyErr = e.message.includes('API_KEY_INVALID') || e.message.includes('400');
+    errEl.textContent = isKeyErr
+      ? '❌ Invalid API key. Please check your key below and save it again.'
+      : 'Error: ' + e.message;
+    if (isKeyErr) document.getElementById('api-key-input').focus();
   }
 }
 
+/* ── Render Exam ── */
 function renderExam() {
   document.getElementById('exam-screen').style.display = 'block';
   document.getElementById('ex-title').textContent = examData.title || lastSetup.subject + ' Exam';
@@ -273,14 +369,14 @@ function renderExam() {
 
   document.getElementById('questions-area').innerHTML = examData.questions.map((q, i) => {
     const isTF = q.type === 'tf';
-    const opts = (q.options || (isTF ? ['True','False'] : []));
-    return `<div class="q-card slide-up" id="qc-${i}" style="animation-delay:${i*40}ms">
-      <div class="q-num">QUESTION ${i+1} OF ${examData.questions.length}${isTF?' · TRUE / FALSE':''}</div>
+    const opts = (q.options || (isTF ? ['True', 'False'] : []));
+    return `<div class="q-card slide-up" id="qc-${i}" style="animation-delay:${i * 40}ms">
+      <div class="q-num">QUESTION ${i + 1} OF ${examData.questions.length}${isTF ? ' · TRUE / FALSE' : ''}</div>
       <div class="q-text">${esc(q.question)}</div>
-      <div class="${isTF?'options':'options'}" style="${isTF?'grid-template-columns:1fr 1fr;max-width:320px':''}">
+      <div class="${isTF ? 'options' : 'options'}" style="${isTF ? 'grid-template-columns:1fr 1fr;max-width:320px' : ''}">
         ${opts.map((o, oi) => `
           <button class="opt-btn" id="opt-${i}-${oi}" onclick="selectOpt(${i},${oi},this)">
-            ${!isTF?`<span class="opt-lbl">${String.fromCharCode(65+oi)}</span>`:''}${esc(o)}
+            ${!isTF ? `<span class="opt-lbl">${String.fromCharCode(65 + oi)}</span>` : ''}${esc(o)}
           </button>`).join('')}
       </div>
     </div>`;
@@ -290,45 +386,45 @@ function renderExam() {
 const userSelections = {};
 
 function selectOpt(qi, oi, btn) {
-  const q = examData.questions[qi];
+  const q    = examData.questions[qi];
   const opts = btn.closest('.options').querySelectorAll('.opt-btn');
   opts.forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
-  userSelections[qi] = (q.options || ['True','False'])[oi];
+  userSelections[qi] = (q.options || ['True', 'False'])[oi];
 }
 
+/* ── Submit ── */
 function submitExam() {
-  const total = examData.questions.length;
+  const total    = examData.questions.length;
   const answered = Object.keys(userSelections).length;
   if (answered < total) {
     if (!confirm(`You've answered ${answered}/${total} questions. Submit anyway?`)) return;
   }
 
   let correct = 0;
-  examData.questions.forEach((q, i) => {
-    if (userSelections[i] === q.answer) correct++;
-  });
+  examData.questions.forEach((q, i) => { if (userSelections[i] === q.answer) correct++; });
 
   document.getElementById('exam-screen').style.display   = 'none';
   document.getElementById('result-screen').style.display = 'block';
 
-  const pct = Math.round((correct / total) * 100);
+  const pct  = Math.round((correct / total) * 100);
   const pass = pct >= 60;
 
   const banner = document.getElementById('score-banner');
   banner.className = 'score-banner ' + (pass ? 'pass' : 'fail');
   document.getElementById('final-score').textContent = `${pct}%`;
   document.getElementById('final-score').style.color = pass ? 'var(--green)' : 'var(--red)';
-  document.getElementById('final-label').textContent = `${correct}/${total} correct · ${pass ? '✅ Passed' : '❌ Failed — Review below'}`;
+  document.getElementById('final-label').textContent =
+    `${correct}/${total} correct · ${pass ? '✅ Passed' : '❌ Failed — Review below'}`;
 
   document.getElementById('results-area').innerHTML = examData.questions.map((q, i) => {
-    const userAns = userSelections[i];
+    const userAns  = userSelections[i];
     const isCorrect = userAns === q.answer;
     return `<div class="q-card" style="margin-bottom:12px">
-      <div class="q-num">Q${i+1} — ${isCorrect?'✅ Correct':userAns?'❌ Wrong':'⚪ Not answered'}</div>
+      <div class="q-num">Q${i + 1} — ${isCorrect ? '✅ Correct' : userAns ? '❌ Wrong' : '⚪ Not answered'}</div>
       <div class="q-text" style="font-size:14.5px">${esc(q.question)}</div>
       <div style="font-family:var(--font-m);font-size:13px;margin:10px 0;display:flex;gap:16px;flex-wrap:wrap">
-        <span style="color:var(--muted)">Your answer: <span style="color:${isCorrect?'var(--green)':'var(--red)'}">${userAns||'None'}</span></span>
+        <span style="color:var(--muted)">Your answer: <span style="color:${isCorrect ? 'var(--green)' : 'var(--red)'}">${userAns || 'None'}</span></span>
         <span style="color:var(--muted)">Correct: <span style="color:var(--green)">${q.answer}</span></span>
       </div>
       <div class="explanation">${esc(q.explanation)}</div>
@@ -346,32 +442,16 @@ function retryExam() {
 function resetExam() {
   examData = null;
   Object.keys(userSelections).forEach(k => delete userSelections[k]);
-  document.getElementById('exam-screen').style.display  = 'none';
-  document.getElementById('result-screen').style.display= 'none';
-  document.getElementById('setup-screen').style.display = 'block';
-  document.getElementById('e-subject').value = '';
+  document.getElementById('exam-screen').style.display   = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display  = 'block';
+  document.getElementById('e-subject').value  = '';
   document.getElementById('e-err').textContent = '';
 }
 
-function showApiKeyBanner() {
-  document.getElementById('api-key-banner').style.display = 'block';
-  const existingKey = localStorage.getItem('SmartEdu_APIKey');
-  if (existingKey) document.getElementById('api-key-input').value = existingKey;
-}
-
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (!key.startsWith('AIza')) { alert('Please enter a valid Gemini API key (starts with AIza)'); return; }
-  localStorage.setItem('SmartEdu_APIKey', key);
-  document.getElementById('api-key-saved').style.display = 'block';
-  setTimeout(() => { document.getElementById('api-key-saved').style.display = 'none'; }, 3000);
-}
-
-// Show key banner on page load if key not set
-document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem('SmartEdu_APIKey')) showApiKeyBanner();
-});
-
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', refreshKeyUI);
+refreshKeyUI();
 </script>
 </body>
 </html>

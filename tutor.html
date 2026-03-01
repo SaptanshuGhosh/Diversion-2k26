@@ -16,6 +16,44 @@
     .chat-wrap{border-radius:var(--r3)}
     .bubble{border-radius:var(--r2)!important}
     .msg.assistant .bubble{white-space:pre-wrap}
+
+    /* API Key section — always visible at bottom */
+    .api-key-section{
+      margin-top:24px;
+      border:1px solid var(--border);
+      border-radius:var(--r2);
+      background:var(--card);
+      padding:18px 20px;
+    }
+    .api-key-section.has-key{
+      border-color:rgba(0,229,160,.25);
+      background:rgba(0,229,160,.03);
+    }
+    .api-key-header{
+      display:flex;align-items:center;gap:10px;margin-bottom:14px;
+    }
+    .api-key-status{
+      font-size:12px;font-family:var(--font-m);
+      padding:3px 10px;border-radius:20px;font-weight:600;margin-left:auto;
+    }
+    .api-key-status.set{background:rgba(0,229,160,.15);color:var(--green)}
+    .api-key-status.missing{background:rgba(255,61,107,.12);color:var(--red)}
+    .api-key-row{display:flex;gap:8px;align-items:center}
+    .api-key-row input{
+      flex:1;background:var(--surface);border:1px solid var(--border);
+      border-radius:8px;padding:10px 14px;color:var(--text);
+      font-family:var(--font-m);font-size:13px;outline:none;transition:border-color .2s;
+    }
+    .api-key-row input:focus{border-color:var(--accent)}
+    .api-key-hint{margin-top:8px;font-size:12px;color:var(--muted)}
+    .api-key-hint a{color:var(--accent2)}
+    #key-saved-msg{display:none;color:var(--green);font-weight:600;font-size:12px;margin-left:8px}
+    #key-clear-btn{
+      background:transparent;border:none;color:var(--muted);
+      font-size:12px;font-family:var(--font-m);cursor:pointer;
+      padding:4px 8px;border-radius:6px;transition:color .2s;display:none;
+    }
+    #key-clear-btn:hover{color:var(--red)}
   </style>
 </head>
 <body>
@@ -66,165 +104,198 @@
     </div>
   </div>
 
-  <div id="api-key-banner" style="display:none;margin-top:16px">
-    <div class="card" style="border-color:rgba(245,200,66,.3);background:rgba(245,200,66,.04)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <span style="font-size:20px">🔑</span>
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--yellow)">Gemini API Key Required</div>
-          <div style="font-size:12.5px;color:var(--text2);margin-top:2px">Enter your Gemini API key to enable the AI Tutor. Stored only in your browser.</div>
-        </div>
+  <!-- ── API Key Section (always visible) ── -->
+  <div class="api-key-section" id="api-key-section">
+    <div class="api-key-header">
+      <span style="font-size:20px">🔑</span>
+      <div>
+        <div style="font-weight:700;font-size:14px;">Gemini API Key</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:1px">Required to power the AI Tutor. Stored only in your browser.</div>
       </div>
-      <div style="display:flex;gap:8px">
-        <input type="password" id="api-key-input" placeholder="AIzaSy..."
-          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-m);font-size:13px;outline:none"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
-        <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
-      </div>
-      <div style="margin-top:8px;font-size:12px;color:var(--muted)">
-        Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent2)">Google AI Studio</a>
-        <span id="key-saved-msg" style="display:none;color:var(--green);font-weight:600;margin-left:10px">✓ Saved!</span>
-      </div>
+      <span class="api-key-status missing" id="key-status-badge">Not set</span>
+    </div>
+    <div class="api-key-row">
+      <input type="password" id="api-key-input" placeholder="AIzaSy…"
+        oninput="onKeyInput()"
+        onfocus="this.style.borderColor='var(--accent)'"
+        onblur="this.style.borderColor='var(--border)'"
+      />
+      <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save Key</button>
+      <button id="key-clear-btn" onclick="clearApiKey()">Remove</button>
+    </div>
+    <div class="api-key-hint">
+      Get your free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+      &nbsp;·&nbsp; Key is never sent anywhere except directly to Google's API.
+      <span id="key-saved-msg">✓ Saved!</span>
     </div>
   </div>
+
 </main>
 
 <script src="shared.js"></script>
 <script>
-let chatHistory=[];
-let loading=false;
+let chatHistory = [];
+let loading = false;
 
-function appendMsg(role,text){
-  const c=document.getElementById('chat-msgs');
-  const d=document.createElement('div');
-  d.className=`msg ${role} slide-up`;
-  d.innerHTML=`<div class="bubble">${esc(text)}</div>`;
+/* ── Helpers ── */
+function appendMsg(role, text) {
+  const c = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = `msg ${role} slide-up`;
+  d.innerHTML = `<div class="bubble">${esc(text)}</div>`;
   c.appendChild(d);
-  c.scrollTop=c.scrollHeight;
+  c.scrollTop = c.scrollHeight;
 }
 
-function showTyping(){
-  const c=document.getElementById('chat-msgs');
-  const d=document.createElement('div');
-  d.className='typing-row';d.id='typing';
-  d.innerHTML=`<div class="typing-dots"><span></span><span></span><span></span></div>`;
-  c.appendChild(d);c.scrollTop=c.scrollHeight;
+function showTyping() {
+  const c = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className = 'typing-row'; d.id = 'typing';
+  d.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
 }
-function hideTyping(){const el=document.getElementById('typing');if(el)el.remove()}
+function hideTyping() { const el = document.getElementById('typing'); if (el) el.remove(); }
 
-function quickSend(text){document.getElementById('chat-in').value=text;sendMsg()}
+function quickSend(text) { document.getElementById('chat-in').value = text; sendMsg(); }
 
-function clearChat(){
-  if(!chatHistory.length)return;
-  chatHistory=[];
-  document.getElementById('chat-msgs').innerHTML='';
-  appendMsg('assistant','Chat cleared! How can I help you?');
+function clearChat() {
+  if (!chatHistory.length) return;
+  chatHistory = [];
+  document.getElementById('chat-msgs').innerHTML = '';
+  appendMsg('assistant', 'Chat cleared! How can I help you?');
 }
 
+/* ── API Key UI ── */
+function refreshKeyUI() {
+  const existing = localStorage.getItem('SmartEdu_APIKey') || '';
+  const badge    = document.getElementById('key-status-badge');
+  const section  = document.getElementById('api-key-section');
+  const clearBtn = document.getElementById('key-clear-btn');
+  const input    = document.getElementById('api-key-input');
+
+  if (existing) {
+    badge.textContent = '✓ Set';
+    badge.className   = 'api-key-status set';
+    section.classList.add('has-key');
+    clearBtn.style.display = 'inline';
+    // Show masked placeholder so user knows a key exists
+    input.value       = '';
+    input.placeholder = '••••••••••••••••••••••••••••••••••••';
+  } else {
+    badge.textContent = 'Not set';
+    badge.className   = 'api-key-status missing';
+    section.classList.remove('has-key');
+    clearBtn.style.display = 'none';
+    input.placeholder = 'AIzaSy…';
+  }
+}
+
+function onKeyInput() {
+  // If user starts typing, reset placeholder to normal
+  document.getElementById('api-key-input').placeholder = 'AIzaSy…';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { alert('Please paste your Gemini API key first.'); return; }
+  if (!key.startsWith('AIza')) { alert('That doesn\'t look like a Gemini key.\nGemini API keys start with "AIza".'); return; }
+  localStorage.setItem('SmartEdu_APIKey', key);
+  document.getElementById('key-saved-msg').style.display = 'inline';
+  setTimeout(() => { document.getElementById('key-saved-msg').style.display = 'none'; }, 2500);
+  refreshKeyUI();
+}
+
+function clearApiKey() {
+  if (!confirm('Remove your saved API key?')) return;
+  localStorage.removeItem('SmartEdu_APIKey');
+  document.getElementById('api-key-input').value = '';
+  refreshKeyUI();
+}
+
+/* ── Send Message ── */
 async function sendMsg() {
-  if(loading) return;
+  if (loading) return;
   const input = document.getElementById('chat-in');
-  const text = input.value.trim();
-  if(!text) return;
-  
+  const text  = input.value.trim();
+  if (!text) return;
+
+  // ── BUG FIX: use the stored key, not a hardcoded string ──
+  const apiKey = localStorage.getItem('SmartEdu_APIKey') || '';
+  if (!apiKey) {
+    appendMsg('assistant', '⚠️ No API key saved yet. Please enter your Gemini API key in the section below and click "Save Key".');
+    document.getElementById('api-key-input').focus();
+    return;
+  }
+
   input.value = '';
-  chatHistory.push({role: 'user', content: text});
+  chatHistory.push({ role: 'user', content: text });
   appendMsg('user', text);
-  
+
   loading = true;
   document.getElementById('send-btn').disabled = true;
   showTyping();
 
-  // Load contextual task data if loadTasks/prioritizeTasks exist in your shared.js
+  // Optional: load task context from shared.js helpers
   let tasks = [];
   try {
     if (typeof loadTasks === 'function' && typeof prioritizeTasks === 'function') {
       tasks = prioritizeTasks(loadTasks());
     }
-  } catch (err) {
-    console.warn("Task tracking functions not found in shared.js, ignoring.");
-  }
+  } catch (err) { /* shared.js task helpers not available */ }
 
   const taskCtx = tasks.length
-    ? `Student's current tasks (priority order):\n${tasks.map((t,i)=>`${i+1}. "${t.task}" (${t.subject}) — due ${t.deadline}, weight ${t.weight}/10, ${t.daysRequired}d needed, status: ${t.status}`).join('\n')}`
+    ? `Student's current tasks (priority order):\n${tasks.map((t, i) =>
+        `${i + 1}. "${t.task}" (${t.subject}) — due ${t.deadline}, weight ${t.weight}/10, ${t.daysRequired}d needed, status: ${t.status}`
+      ).join('\n')}`
     : 'Student has no tasks added yet.';
 
   const system = `You are an encouraging, knowledgeable AI tutor inside SmartEdu — an education platform that democratizes learning. Help students plan, understand topics, and stay motivated. Be concise, warm, and practical. Use bullet points when they genuinely help clarity. Keep responses focused and not overly long.\n\n${taskCtx}`;
 
-  const apiKey = localStorage.getItem('SmartEdu_APIKey') || '';
-  if (!apiKey) {
-    hideTyping();
-    loading = false;
-    document.getElementById('send-btn').disabled = false;
-    appendMsg('assistant', '⚠️ No API key set. Please add your Gemini API key using the button below to use the AI Tutor.');
-    document.getElementById('api-key-banner').style.display = 'block';
-    return;
-  }
-  
   try {
-    // 1. Convert history to Gemini format (role must be 'user' or 'model')
+    // Convert chat history to Gemini format (roles must be 'user' or 'model')
     const geminiHistory = chatHistory.map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${"AIzaSyDwYlzixyx7EjJcVD48YWVC2youipef7cE"}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: system }] },
-        contents: geminiHistory
-      })
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: geminiHistory
+        })
+      }
+    );
 
     const data = await res.json();
-    
     if (data.error) throw new Error(data.error.message);
 
-    // 2. Access the text using the correct Gemini path
-    const reply = data.candidates[0].content.parts[0].text || "No response received.";
-    
-    chatHistory.push({role: 'assistant', content: reply});
+    const reply = data.candidates[0].content.parts[0].text || 'No response received.';
+    chatHistory.push({ role: 'assistant', content: reply });
     hideTyping();
     appendMsg('assistant', reply);
-  } catch(e) {
+
+  } catch (e) {
     hideTyping();
-    appendMsg('assistant', 'Error: ' + e.message);
+    const msg = e.message.includes('API_KEY_INVALID') || e.message.includes('400')
+      ? '❌ Invalid API key. Please check your key in the section below and save it again.'
+      : 'Error: ' + e.message;
+    appendMsg('assistant', msg);
   }
-  
+
   loading = false;
   document.getElementById('send-btn').disabled = false;
 }
 
-// Initial Greeting
-appendMsg('assistant','👋 Hi! I\'m your AI Tutor. I can see your assignments and help you build a study plan, explain any concept, or keep you motivated.\n\nWhat would you like help with today?');
+/* ── Init ── */
+appendMsg('assistant', '👋 Hi! I\'m your AI Tutor. I can see your assignments and help you build a study plan, explain any concept, or keep you motivated.\n\nWhat would you like help with today?');
 
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  
-  // FIX: Change 'sk-ant' to 'AIza' so it accepts Gemini keys
-  if (!key.startsWith('AIza')) { 
-    alert('Please enter a valid Gemini API key (starts with AIza)'); 
-    return; 
-  }
-  
-  localStorage.setItem('SmartEdu_APIKey', key);
-  
-  // Feedback to user
-  const savedMsg = document.getElementById('key-saved-msg') || document.getElementById('api-key-saved');
-  if (savedMsg) savedMsg.style.display = 'inline';
-  
-  setTimeout(() => { 
-    if (savedMsg) savedMsg.style.display = 'none'; 
-    document.getElementById('api-key-banner').style.display = 'none'; 
-    location.reload(); // Refresh the page to apply the new key
-  }, 1500);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem('SmartEdu_APIKey')) document.getElementById('api-key-banner').style.display='block';
-});
-
+document.addEventListener('DOMContentLoaded', refreshKeyUI);
+// Also run immediately in case DOMContentLoaded already fired
+refreshKeyUI();
 </script>
 </body>
 </html>
